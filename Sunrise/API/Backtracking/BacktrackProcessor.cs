@@ -1,5 +1,6 @@
 using LabApi.Features.Wrappers;
 using System;
+using PlayerRoles.FirstPersonControl;
 
 namespace Sunrise.API.Backtracking;
 
@@ -8,19 +9,12 @@ namespace Sunrise.API.Backtracking;
 /// </summary>
 public readonly struct BacktrackProcessor : IDisposable
 {
-    readonly BacktrackEntry _previous;
-    readonly Player _player;
+    readonly FpcBacktracker? _backtracker;
 
     public BacktrackProcessor(Player player, BacktrackEntry claimed, bool forecast)
     {
-        _player = player;
-        _previous = new(_player);
-        RestoreClosest(claimed, forecast);
-    }
-
-    void RestoreClosest(BacktrackEntry claimed, bool forecast)
-    {
-        BacktrackHistory history = BacktrackHistory.Get(_player);
+        _backtracker = null;
+        BacktrackHistory history = BacktrackHistory.Get(player);
 
         if (forecast)
             history.ForecastEntry();
@@ -29,23 +23,21 @@ public readonly struct BacktrackProcessor : IDisposable
 
         if (best.Timestamp != 0) // Null check struct edition
         {
-            best.Restore(_player);
-
             if (Config.Instance.Debug)
             {
-                Debug.Log($"Best entry found for {_player.Nickname} " +
+                Debug.Log($"Best entry found for {player.Nickname} " +
                     $"Difference: A:{Quaternion.Angle(best.Rotation, claimed.Rotation):F5}, P:{Vector3.Distance(best.Position, claimed.Position):F} " +
                     $"Age: {best.Age * 1000:F0}ms");
             }
+
+            _backtracker = new(player.ReferenceHub, best.Position, best.Rotation,
+                Config.Instance.AccountedLatencySeconds, forecast ? Config.Instance.AccountedLatencySeconds : 0);
         }
         else
         {
-            Debug.Log($"No suitable entry found for {_player.Nickname}");
+            Debug.Log($"No suitable entry found for {player.Nickname}");
         }
     }
 
-    public void Dispose() // BUG: Prevents teleports inside OnShooting from working if player dies. is it possible by default tho?
-    {
-        _previous.Restore(_player);
-    }
+    public void Dispose() => _backtracker?.Dispose();
 }

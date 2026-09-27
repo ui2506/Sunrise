@@ -5,6 +5,7 @@ Game references live in `_ProjectDependencies`; keep them consistent with the de
 Builds do not automatically copy files to a running server.
 
 Run `dotnet run --project Tests/VisibilityChecks.csproj` for visibility and module lifecycle checks.
+Run `dotnet run --project Tests/BacktrackChecks.csproj` for scoped backtrack and restoration checks.
 These run the production event handler against controlled engine/API boundaries. Test on a LabAPI server
 before deployment: room transitions and raycasts, SCP-049/096/939 visibility, flashlights and item sounds,
 landing grace, item/ammo/candy pickups through walls, door buttons, SCP-3114 and cuffed item use,

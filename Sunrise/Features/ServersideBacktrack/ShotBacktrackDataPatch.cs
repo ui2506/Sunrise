@@ -45,10 +45,8 @@ internal static class BacktrackOverridePatch
 
         if (Config.Instance.Debug) // The red line shows the claimed position
         {
-            BacktrackEntry prev = new(player);
-            ownerClaimed.Restore(player);
-            Debug.DrawLine(player.Camera.position, player.Camera.position + player.Camera.forward * 100f, Colors.Red * 50, 15);
-            prev.Restore(player);
+            Vector3 origin = ownerClaimed.Position + (player.Camera.position - player.Position);
+            Debug.DrawLine(origin, origin + ownerClaimed.Rotation * Vector3.forward * 100f, Colors.Red * 50, 15);
         }
 
         using BacktrackProcessor attackerProcessor = new(player, ownerClaimed, true);

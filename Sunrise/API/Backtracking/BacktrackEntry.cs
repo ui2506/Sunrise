@@ -27,10 +27,4 @@ public struct BacktrackEntry
     public float Timestamp { get; set; } = Time.time;
 
     public readonly float Age => Time.time - Timestamp;
-
-    public readonly void Restore(Player player)
-    {
-        player.Position = Position;
-        player.Camera.rotation = Rotation;
-    }
 }
