@@ -1,14 +1,11 @@
 using AdminToys;
-using LabApi.Features.Wrappers;
 using MEC;
-using System.Diagnostics;
 using PrimitiveObjectToy = LabApi.Features.Wrappers.PrimitiveObjectToy;
 
 namespace Sunrise.Utility;
 
 internal static class Debug
 {
-    [Conditional("DEBUG")]
     internal static void DrawCube(Vector3 position, Vector3 scale, Color color = default, float duration = 10f)
     {
         if (!Config.Instance.DebugPrimitives)
@@ -27,7 +24,6 @@ internal static class Debug
         Timing.CallDelayed(duration, cube.Destroy);
     }
 
-    [Conditional("DEBUG")]
     internal static void DrawLine(Vector3 start, Vector3 end, Color color = default, float duration = 10f)
     {
         if (!Config.Instance.DebugPrimitives)
@@ -49,7 +45,6 @@ internal static class Debug
         Timing.CallDelayed(duration, line.Destroy);
     }
 
-    [Conditional("DEBUG")]
     internal static void DrawPoint(Vector3 position, Color color = default, float duration = 10f)
     {
         if (!Config.Instance.DebugPrimitives)
@@ -67,7 +62,6 @@ internal static class Debug
         Timing.CallDelayed(duration, point.Destroy);
     }
 
-    [Conditional("DEBUG")]
     internal static void Log(string s) => LabApi.Features.Console.Logger.Debug(s, Config.Instance.Debug);
 
     static void GetLineData(Vector3 from, Vector3 to, float thickness, bool cube, out Vector3 position, out Vector3 scale, out Quaternion rotation)
