@@ -8,7 +8,7 @@ using Sunrise.Features.ServersideTeslaDamage;
 
 namespace Sunrise.EntryPoint;
 
-public class SunriseLoader : PluginModule
+public sealed class SunriseLoader : PluginModule
 {
     protected override List<PluginModule> SubModules { get; } =
     [

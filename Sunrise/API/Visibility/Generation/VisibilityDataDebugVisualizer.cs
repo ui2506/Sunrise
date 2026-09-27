@@ -1,3 +1,4 @@
+using LabApi.Features.Wrappers;
 using MapGeneration;
 
 namespace Sunrise.API.Visibility.Generation;
@@ -7,6 +8,8 @@ internal static class VisibilityDataDebugVisualizer
     const float PrimitiveDuration = 15;
 
     static readonly Dictionary<Room, DebugData> RoomDebugData = new();
+
+    internal static void Clear() => RoomDebugData.Clear();
 
     public static void DrawDebugPrimitives(VisibilityData data)
     {
@@ -37,7 +40,7 @@ internal static class VisibilityDataDebugVisualizer
 
     static void VisualizeRoomAxes(VisibilityData data, Vector3 origin)
     {
-        Transform transform = data.TargetRoom.transform;
+        Transform transform = data.TargetRoom.Transform;
         origin += Vector3.up * 0.05f;
 
         Debug.DrawLine(origin, origin + transform.right * 0.3f, Colors.Red * 50, PrimitiveDuration);

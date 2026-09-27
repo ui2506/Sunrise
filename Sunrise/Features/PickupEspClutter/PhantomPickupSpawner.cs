@@ -23,7 +23,7 @@ internal static class PhantomItemSpawner
         const int Count = 200;
         var sw = Stopwatch.StartNew();
 
-        foreach (PhantomPickup phantomPickup in PhantomPickup.List)
+        foreach (PhantomPickup phantomPickup in new List<PhantomPickup>(PhantomPickup.List))
         {
             phantomPickup.Destroy();
         }

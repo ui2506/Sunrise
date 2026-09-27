@@ -1,13 +1,16 @@
 using System;
 using AdminToys;
-using Exiled.API.Extensions;
-using Exiled.API.Features.Pickups;
-using Exiled.API.Features.Roles;
-using Exiled.Events.EventArgs.Player;
+using PrimitiveObjectToy = AdminToys.PrimitiveObjectToy;
+using LockerChamber = MapGeneration.Distributors.LockerChamber;
+
+using LabApi.Features.Wrappers;
+
+using LabApi.Events.Arguments.Interfaces;
 using Interactables.Interobjects.DoorUtils;
 using InventorySystem.Items.Pickups;
 using JetBrains.Annotations;
 using MapGeneration.Distributors;
+using Sunrise.API.Backtracking;
 
 namespace Sunrise.Features.PickupValidation;
 
@@ -21,9 +24,9 @@ internal static class PickupValidator
 
     [UsedImplicitly] public static bool AlwaysBlock { get; set; }
 
-    internal static void OnPickingUpItem(PickingUpItemEventArgs ev)
+    internal static void OnPickingUpItem<T>(T ev) where T : IPlayerEvent, IPickupEvent, ICancellableEvent
     {
-        if (!Config.Instance.PickupValidation || !ev.Pickup.Base || ev.Player.Role is FpcRole { IsNoclipEnabled: true })
+        if (!Config.Instance.PickupValidation || ev.Player is null || ev.Pickup is null || !ev.Pickup.Base || ev.Player.IsNoclipEnabled)
             return;
 
         if (TemporaryPlayerBypass.TryGetValue(ev.Player, out float time) && time > Time.time)
@@ -40,14 +43,14 @@ internal static class PickupValidator
 
     static bool CanPickUp(Player player, Pickup pickup)
     {
-        float bypassTime = pickup.PickupTimeForPlayer(player) + 1f;
+        float bypassTime = pickup.Base.SearchTimeForPlayer(player.ReferenceHub) + 1f;
 
-        if (!IsObstructed(player.CameraTransform.position, pickup.Position, out _, bypassTime))
+        if (!IsObstructed(player.Camera.position, pickup.Position, out _, bypassTime))
             return true;
 
         Bounds bounds = pickup.Base.GetComponentInChildren<Renderer>().bounds;
-        Vector3 eyePos = player.CameraTransform.position;
-        Vector3 direction = player.CameraTransform.forward;
+        Vector3 eyePos = player.Camera.position;
+        Vector3 direction = BacktrackHistory.Get(player).LatestForward;
 
         if (CanPickUpDirect(eyePos, direction, pickup))
             return true;
@@ -164,7 +167,7 @@ internal static class PickupValidator
                 case Layer.Glass when hit.collider.GetComponentInParent<LockerChamber>() is LockerChamber locker && LockerLastInteraction.TryGetValue(locker, out time) && time + bypassTime > Time.time:
 
                 // Primitives with collision disabled
-                case Layer.DefaultColliders when hit.collider.GetComponentInParent<PrimitiveObjectToy>() is PrimitiveObjectToy toy && !toy.NetworkPrimitiveFlags.HasFlagFast(PrimitiveFlags.Collidable):
+                case Layer.DefaultColliders when hit.collider.GetComponentInParent<PrimitiveObjectToy>() is PrimitiveObjectToy toy && (toy.NetworkPrimitiveFlags & PrimitiveFlags.Collidable) == 0:
                 {
                     Debug.DrawPoint(hit.point, Colors.Green * 50, 10f);
                     continue;

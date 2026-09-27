@@ -1,10 +1,10 @@
-using System;
-using Exiled.Events.EventArgs.Player;
 using HarmonyLib;
 using InventorySystem.Items.Firearms.Modules.Misc;
 using JetBrains.Annotations;
+using LabApi.Features.Wrappers;
 using RelativePositioning;
 using Sunrise.API.Backtracking;
+using System;
 using BaseFirearm = InventorySystem.Items.Firearms.Firearm;
 
 namespace Sunrise.Features.ServersideBacktrack;
@@ -21,8 +21,16 @@ internal static class BacktrackOverridePatch
 
         Benchmark.Start();
 
-        ProcessShot(firearm, processingMethod, __instance);
-        return false;
+        try
+        {
+            ProcessShot(firearm, processingMethod, __instance);
+            return false;
+        }
+        finally
+        {
+            Benchmark.Increment();
+            Benchmark.Stop();
+        }
     }
 
     static void ProcessShot(BaseFirearm firearm, Action<ReferenceHub> processingMethod, ShotBacktrackData backtrackData)
@@ -39,14 +47,14 @@ internal static class BacktrackOverridePatch
         {
             BacktrackEntry prev = new(player);
             ownerClaimed.Restore(player);
-            Debug.DrawLine(player.CameraTransform.position, player.CameraTransform.position + player.CameraTransform.forward * 100f, Colors.Red * 50, 15);
+            Debug.DrawLine(player.Camera.position, player.Camera.position + player.Camera.forward * 100f, Colors.Red * 50, 15);
             prev.Restore(player);
         }
 
         using BacktrackProcessor attackerProcessor = new(player, ownerClaimed, true);
 
         // The green line shows the found position. For normal players they should match most of the time.
-        Debug.DrawLine(player.CameraTransform.position, player.CameraTransform.position + player.CameraTransform.forward * 100f, Colors.Green * 50, 15);
+        Debug.DrawLine(player.Camera.position, player.Camera.position + player.Camera.forward * 100f, Colors.Green * 50, 15);
 
         if (backtrackData.HasPrimaryTarget)
         {
@@ -55,30 +63,11 @@ internal static class BacktrackOverridePatch
 
             using BacktrackProcessor targetProcessor = new(target, targetClaimed, false);
 
-            ShootingEventArgs args = new(firearm, ref backtrackData);
-            Handlers.Player.Shooting.InvokeSafely(args);
-
-            if (args.IsAllowed)
-                processingMethod(backtrackData.PrimaryTargetHub);
+            processingMethod(backtrackData.PrimaryTargetHub);
         }
         else
         {
-            ShootingEventArgs args = new(firearm, ref backtrackData);
-            Handlers.Player.Shooting.InvokeSafely(args);
-
-            if (args.IsAllowed)
-                processingMethod(null!);
+            processingMethod(null!);
         }
     }
-
-#if DEBUG
-    public static void Postfix(BaseFirearm firearm, Action<ReferenceHub> processingMethod)
-    {
-        Benchmark.Increment();
-        Benchmark.Stop();
-        // [ServersideBacktrack = true] Total for 100 shots: 56.80070ms. Average: 0.5680070ms. Per 1000 shots: 568.00700ms.
-        // [ServersideBacktrack = false] Total for 100 shots: 119.02560ms. Average: 1.1902560ms. Per 1000 shots: 1190.25600ms.
-        // Sunrise backtrack results in 2x performance increase. Ratios reproduced on 3 different machines.
-    }
-#endif
 }

@@ -1,3 +1,4 @@
+using LabApi.Features.Wrappers;
 using MathExtensions = Sunrise.Utility.MathExtensions;
 
 namespace Sunrise.API.Backtracking;
@@ -12,7 +13,9 @@ public class BacktrackHistory(Player player)
 
     internal static readonly Dictionary<ReferenceHub, BacktrackHistory> Dictionary = new();
 
-    public readonly CircularBuffer<BacktrackEntry> Entries = new((int)(Config.Instance.AccountedLatencySeconds * 60));
+    public readonly CircularBuffer<BacktrackEntry> Entries = new(System.Math.Max(2, (int)(Config.Instance.AccountedLatencySeconds * 60)));
+
+    public Vector3 LatestForward => Entries.IsEmpty ? player.Camera.forward : Entries.Front().Rotation * Vector3.forward;
 
     public void RecordEntry(Vector3 position, Quaternion rotation) => Entries.PushFront(new(position, rotation));
 
@@ -22,6 +25,9 @@ public class BacktrackHistory(Player player)
     /// </summary>
     public void ForecastEntry()
     {
+        if (Entries.IsEmpty)
+            return;
+
         float speed = player.Velocity.magnitude;
         Vector3 direction = player.Velocity / speed;
         float forecastDistance = speed * Config.Instance.AccountedLatencySeconds;
@@ -54,7 +60,8 @@ public class BacktrackHistory(Player player)
         var minAngle = float.MaxValue;
 
         using IEnumerator<BacktrackEntry> enumerator = Entries.GetEnumerator(); // Entries are ordered from newest to oldest
-        enumerator.MoveNext();
+        if (!enumerator.MoveNext())
+            return default;
 
         BacktrackEntry newest = enumerator.Current;
 

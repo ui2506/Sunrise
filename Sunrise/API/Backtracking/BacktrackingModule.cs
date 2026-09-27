@@ -1,3 +1,5 @@
+using LabApi.Events.Arguments.PlayerEvents;
+
 namespace Sunrise.API.Backtracking;
 
 /// <summary>
@@ -9,13 +11,20 @@ internal class BacktrackingModule : PluginModule
 {
     protected override void OnEnabled()
     {
-        Handlers.Server.ReloadedConfigs += OnReset;
+        Handlers.ServerEvents.RoundRestarted += OnReset;
+        Handlers.PlayerEvents.Left += OnPlayerLeft;
+        Handlers.PlayerEvents.ChangedRole += OnChangedRole;
     }
 
     protected override void OnDisabled()
     {
-        Handlers.Server.ReloadedConfigs -= OnReset;
+        Handlers.ServerEvents.RoundRestarted -= OnReset;
+        Handlers.PlayerEvents.Left -= OnPlayerLeft;
+        Handlers.PlayerEvents.ChangedRole -= OnChangedRole;
     }
+
+    static void OnPlayerLeft(PlayerLeftEventArgs ev) => BacktrackHistory.Dictionary.Remove(ev.Player.ReferenceHub);
+    static void OnChangedRole(PlayerChangedRoleEventArgs ev) => BacktrackHistory.Dictionary.Remove(ev.Player.ReferenceHub);
 
     protected override void OnReset()
     {

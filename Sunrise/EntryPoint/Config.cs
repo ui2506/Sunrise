@@ -1,13 +1,9 @@
 using System.ComponentModel;
-using Exiled.API.Interfaces;
-using JetBrains.Annotations;
 
 namespace Sunrise.EntryPoint;
 
-[UsedImplicitly]
-public class Config : IConfig
+public sealed class Config
 {
-    public bool IsEnabled { get; set; } = true;
     public bool Debug { get; set; } = false;
 
     [Description("Enables some visual debugging features.")]
@@ -19,7 +15,7 @@ public class Config : IConfig
     [Description("The maximum latency for which the server has to account. Higher values give more authority to clients, lower values may decrease gameplay quality for players with higher latency.")]
     public float AccountedLatencySeconds { get; set; } = 0.3f;
 
-    [Description("Toggle features separately:\nSignificantly reduces wallhack usefulness using per-room visibility maps. Performance impact negligible.")]
+    [Description("Toggle features separately: Significantly reduces wallhack usefulness using per-room visibility maps. Performance impact negligible.")]
     public bool AntiWallhack { get; set; } = true;
 
     [Description(

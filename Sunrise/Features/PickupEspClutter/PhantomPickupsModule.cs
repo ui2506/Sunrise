@@ -1,5 +1,5 @@
-using Exiled.Events.EventArgs.Player;
-using Exiled.Events.EventArgs.Server;
+using LabApi.Events.Arguments.PlayerEvents;
+using LabApi.Events.Arguments.ServerEvents;
 
 namespace Sunrise.Features.PickupEspClutter;
 
@@ -17,21 +17,26 @@ internal class PhantomPickupsModule : PluginModule
 
     protected override void OnEnabled()
     {
-        Handlers.Server.RoundStarted += OnRoundStarted;
-        Handlers.Server.RoundEnded += OnRoundEnded;
-        Handlers.Player.PickingUpItem += OnPickingUpItem;
+        Handlers.ServerEvents.RoundStarted += OnRoundStarted;
+        Handlers.ServerEvents.RoundEnded += OnRoundEnded;
+        Handlers.PlayerEvents.PickingUpItem += OnPickingUpItem;
     }
 
     protected override void OnDisabled()
     {
-        Handlers.Server.RoundStarted -= OnRoundStarted;
-        Handlers.Server.RoundEnded -= OnRoundEnded;
-        Handlers.Player.PickingUpItem -= OnPickingUpItem;
+        Handlers.ServerEvents.RoundStarted -= OnRoundStarted;
+        Handlers.ServerEvents.RoundEnded -= OnRoundEnded;
+        Handlers.PlayerEvents.PickingUpItem -= OnPickingUpItem;
     }
 
     protected override void OnReset()
     {
+        PhantomItemSpawner.Stop();
+        foreach (PhantomPickup pickup in new List<PhantomPickup>(PhantomPickup.List))
+            pickup.Destroy();
+
         PhantomPickup.Pickups.Clear();
+        PhantomPickupSynchronizer.Reset();
     }
 
     static void OnRoundStarted()
@@ -44,7 +49,7 @@ internal class PhantomPickupsModule : PluginModule
         PhantomItemSpawner.Stop();
     }
 
-    static void OnPickingUpItem(PickingUpItemEventArgs ev)
+    static void OnPickingUpItem(PlayerPickingUpItemEventArgs ev)
     {
         if (PhantomPickup.Pickups.Contains(ev.Pickup))
             ev.IsAllowed = false;

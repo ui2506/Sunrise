@@ -1,10 +1,8 @@
-using Exiled.API.Features.Items;
+using LabApi.Features.Wrappers;
 using InventorySystem.Items.Coin;
 using InventorySystem.Items.Firearms;
 using InventorySystem.Items.MicroHID.Modules;
-using InventorySystem.Items.Usables;
-using Consumable = Exiled.API.Features.Items.Consumable;
-using Firearm = Exiled.API.Features.Items.Firearm;
+using Scp268 = InventorySystem.Items.Usables.Scp268;
 
 namespace Sunrise.Features.AntiWallhack.ForcedVisibility;
 
@@ -18,7 +16,7 @@ internal static class ItemVisibilityHelper
             {
                 return 0;
             }
-            case Firearm firearm:
+            case FirearmItem firearm:
             {
                 if (firearm.Base is ParticleDisruptor disruptor)
                     return disruptor.AllowHolster ? 0 : 100;
@@ -28,9 +26,9 @@ internal static class ItemVisibilityHelper
                 else
                     return 0;
             }
-            case MicroHid microHid:
+            case MicroHIDItem microHid:
             {
-                return microHid.State switch
+                return microHid.Phase switch
                 {
                     MicroHidPhase.Standby => 0,
                     MicroHidPhase.WindingUp or MicroHidPhase.WoundUpSustain or MicroHidPhase.WindingDown => 15,
@@ -38,7 +36,7 @@ internal static class ItemVisibilityHelper
                     _ => 0,
                 };
             }
-            case Consumable consumable:
+            case ConsumableItem consumable:
             {
                 // medkit 14.5
                 // painkillers 14.5
@@ -47,22 +45,26 @@ internal static class ItemVisibilityHelper
                 // steroids 14.5
                 return consumable.IsUsing ? 14.5f : 0;
             }
-            case Radio radio:
+            case RadioItem radio:
             {
                 // radio 11 when receiving
-                return radio.IsEnabled ? 11 : 0;
+                return radio.Base._enabled ? 11 : 0;
             }
             // coin 5
             // 268 5
-            case Usable:
+            case CoinItem coin:
+            {
+                return coin.Base._lastUseSw.ElapsedMilliseconds < 600 ? 5 : 0;
+            }
+            case UsableItem:
             {
                 return item.Base switch
                 {
-                    Scp268 { IsUsing: true } or Coin { _lastUseSw.ElapsedMilliseconds: < 600 } => 5,
+                    Scp268 { IsUsing: true } => 5,
                     _ => 0,
                 };
             }
-            case Throwable throwable:
+            case ThrowableItem throwable:
             {
                 return !throwable.Base.AllowHolster ? 5 : 0;
             }

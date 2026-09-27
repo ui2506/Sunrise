@@ -1,28 +1,34 @@
-using System.Diagnostics.CodeAnalysis;
+using LabApi.Features.Wrappers;
 using System.Linq;
-using Exiled.API.Enums;
+using MapGeneration;
 
 namespace Sunrise.Features.PickupEspClutter;
 
 internal static class PhantomPickupSynchronizer
 {
-    static readonly HashSet<RoomType> ExcludedRooms =
+    static readonly HashSet<RoomName> ExcludedRooms =
     [
-        RoomType.Surface,
+        RoomName.Outside,
 
-        RoomType.Hcz106,
-        RoomType.HczCrossRoomWater,
-        RoomType.HczStraightPipeRoom,
-        RoomType.HczNuke,
-        RoomType.HczHid,
+        RoomName.Hcz106,
+        RoomName.HczAcroamaticAbatement,
+        RoomName.HczWarhead,
+        RoomName.HczMicroHID,
 
-        RoomType.Lcz173,
+        RoomName.Lcz173,
     ];
 
-    [field: AllowNull, MaybeNull]
-    static List<Room> Rooms => field ??= Room.List.Where(r => !ExcludedRooms.Contains(r.Type)).ToList();
+    static List<Room>? _rooms;
+    static List<Room> Rooms => _rooms ??= Room.List.Where(r => !ExcludedRooms.Contains(r.Name)
+        && !r.GameObject.name.StartsWith("HCZ_Straight_PipeRoom")).ToList();
 
     static int index;
+
+    internal static void Reset()
+    {
+        _rooms = null;
+        index = 0;
+    }
 
     internal static void GetNextPosition(out Vector3 position)
     {

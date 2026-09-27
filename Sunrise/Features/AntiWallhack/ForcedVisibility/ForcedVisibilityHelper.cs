@@ -1,20 +1,25 @@
 using System.Diagnostics.CodeAnalysis;
-using Exiled.API.Features.Roles;
+using LabApi.Features.Wrappers;
+using PlayerRoles;
+using PlayerRoles.PlayableScps.Scp049;
+using PlayerRoles.PlayableScps.Scp049.Zombies;
+using PlayerRoles.PlayableScps.Scp106;
+using PlayerRoles.PlayableScps.Scp173;
+using PlayerRoles.PlayableScps.Scp939;
+using PlayerRoles.PlayableScps.Scp939.Mimicry;
 using PlayerRoles.FirstPersonControl;
 using PlayerRoles.PlayableScps.Scp096;
-using Scp096Role = Exiled.API.Features.Roles.Scp096Role;
-using Scp939Role = Exiled.API.Features.Roles.Scp939Role;
 
 namespace Sunrise.Features.AntiWallhack.ForcedVisibility;
 
 internal static class ForcedVisibilityHelper
 {
-    public static float GetForcedVisibility(Player player) => player.Role switch
+    public static float GetForcedVisibility(Player player) => player.RoleBase switch
     {
         Scp939Role scp939 => Get939Visibility(scp939),
         Scp096Role scp096 => Get096Visibility(scp096),
         Scp106Role scp106 => Get106Visibility(scp106),
-        Scp049Role or Scp173Role or Scp0492Role => 100, // Those guys can be heard from more then 36m away
+        Scp049Role or Scp173Role or ZombieRole => 100, // Those guys can be heard from more then 36m away
 
         HumanRole humanRole => GetHumanVisibility(player, humanRole),
         _ => 12,
@@ -30,18 +35,18 @@ internal static class ForcedVisibilityHelper
         float result = GetMovementInfo(scp939, out bool isJumping) switch
         {
             MovementState.Sprinting => 100,
-            _ => scp939.IsFocused ? 7f : 15f,
+            _ => (scp939.SubroutineModule.TryGetSubroutine(out Scp939FocusAbility focus) && focus.TargetState) ? 7f : 15f,
         };
 
         if (isJumping)
             result = Mathf.Max(result, 30);
-        else if (!scp939.EnvironmentalMimicry.Cooldown.IsReady)
+        else if (scp939.SubroutineModule.TryGetSubroutine(out EnvironmentalMimicry mimicry) && !mimicry.Cooldown.IsReady)
             result = Mathf.Max(result, 30);
 
         return result;
     }
 
-    static float Get096Visibility(Scp096Role scp096) => scp096.AbilityState switch
+    static float Get096Visibility(Scp096Role scp096) => scp096.StateController.AbilityState switch
     {
         // crying - 30
         // trying not to cry - 4
@@ -79,7 +84,7 @@ internal static class ForcedVisibilityHelper
             _ => 0,
         };
 
-        if (humanRole.VoiceModule.ServerIsSending)
+        if (player.VoiceModule?.ServerIsSending == true)
             result = Mathf.Max(result, 22);
         else if (isJumping)
             result = Mathf.Max(result, 8);
@@ -89,11 +94,11 @@ internal static class ForcedVisibilityHelper
         return result;
     }
 
-    static MovementState GetMovementInfo(FpcRole fpcRole, out bool isJumping)
+    static MovementState GetMovementInfo(IFpcRole fpcRole, out bool isJumping)
     {
-        FirstPersonMovementModule movementModule = fpcRole.FirstPersonController.FpcModule;
+        FirstPersonMovementModule movementModule = fpcRole.FpcModule;
 
-        isJumping = movementModule.Motor.JumpController.IsJumping || (AntiWallhackModule.LandingTimes.TryGetValue(fpcRole.Owner, out float landingTime) && Time.time - landingTime < 0.5f);
+        isJumping = movementModule.Motor.JumpController.IsJumping || (AntiWallhackModule.LandingTimes.TryGetValue(Player.Get(movementModule.Hub), out float landingTime) && Time.time - landingTime < 0.5f);
 
         return movementModule.CurrentMovementState switch
         {

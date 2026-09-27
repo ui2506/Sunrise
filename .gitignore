@@ -16,3 +16,7 @@
 /Sunrise/bin/
 /Sunrise.sln.DotSettings.user
 /git-filter-repo
+/.vs/
+/packages/
+/Tests/bin/
+/Tests/obj/

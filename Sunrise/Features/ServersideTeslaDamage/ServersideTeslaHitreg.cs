@@ -1,3 +1,4 @@
+using LabApi.Features.Wrappers;
 using MEC;
 
 namespace Sunrise.Features.ServersideTeslaDamage;
@@ -5,6 +6,7 @@ namespace Sunrise.Features.ServersideTeslaDamage;
 internal class ServersideTeslaHitreg(TeslaGate tesla)
 {
     const float ShockDuration = 0.5f;
+    internal const string CoroutineTag = "Sunrise.Tesla";
 
     internal static readonly Dictionary<TeslaGate, ServersideTeslaHitreg> Dictionary = new();
     internal static readonly Dictionary<Player, float> ShockedPlayers = new();
@@ -13,7 +15,7 @@ internal class ServersideTeslaHitreg(TeslaGate tesla)
     readonly Collider[] _hitBuffer = new Collider[100];
     readonly HashSet<Player> _hitPlayers = [];
 
-    public void Burst() => Timing.RunCoroutine(BurstCoroutine());
+    public void Burst() => Timing.RunCoroutine(BurstCoroutine(), CoroutineTag);
 
     IEnumerator<float> BurstCoroutine()
     {
@@ -44,7 +46,7 @@ internal class ServersideTeslaHitreg(TeslaGate tesla)
         {
             Collider collider = _hitBuffer[i];
 
-            if (Player.Get(collider) is Player player)
+            if (Player.Get(collider.gameObject) is Player player)
                 _hitPlayers.Add(player);
         }
     }
@@ -53,7 +55,7 @@ internal class ServersideTeslaHitreg(TeslaGate tesla)
     {
         foreach (Player player in _hitPlayers)
         {
-            if (!player.IsConnected)
+            if (player.IsDestroyed)
                 continue;
 
             // If the player have reported the damage themselves we don't want to deal it twice

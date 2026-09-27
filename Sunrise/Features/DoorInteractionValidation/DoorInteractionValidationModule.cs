@@ -1,5 +1,9 @@
-using Exiled.API.Features.Roles;
-using Exiled.Events.EventArgs.Player;
+using LabApi.Events.Arguments.PlayerEvents;
+using LabApi.Features.Enums;
+using PlayerRoles.FirstPersonControl;
+using LabApi.Features.Wrappers;
+using Interactables;
+using Sunrise.API.Backtracking;
 
 namespace Sunrise.Features.DoorInteractionValidation;
 
@@ -7,20 +11,17 @@ internal class AntiDoorManipulatorModule : PluginModule
 {
     protected override void OnEnabled()
     {
-        Handlers.Player.InteractingDoor += OnInteractingDoor;
+        Handlers.PlayerEvents.InteractingDoor += OnInteractingDoor;
     }
 
     protected override void OnDisabled()
     {
-        Handlers.Player.InteractingDoor -= OnInteractingDoor;
+        Handlers.PlayerEvents.InteractingDoor -= OnInteractingDoor;
     }
 
-    static void OnInteractingDoor(InteractingDoorEventArgs ev)
+    static void OnInteractingDoor(PlayerInteractingDoorEventArgs ev)
     {
-        if (!Config.Instance.DoorInteractionValidation || ev.Player.Role is not FpcRole fpcRole || fpcRole.IsNoclipEnabled)
-            return;
-
-        if (ev is not { Door: not null, Collider: not null, Player: not null })
+        if (!Config.Instance.DoorInteractionValidation || ev.Player.RoleBase is not IFpcRole || ev.Player.IsNoclipEnabled || ev.Door.DoorName == DoorName.Lcz330Chamber)
             return;
 
         if (!CanInteract(ev.Player, ev))
@@ -28,24 +29,30 @@ internal class AntiDoorManipulatorModule : PluginModule
             if (Config.Instance.Debug)
                 ev.IsAllowed = false;
             else
-                ev.CanInteract = false;
+                ev.CanOpen = false;
         }
     }
 
-    static bool CanInteract(Player player, InteractingDoorEventArgs ev)
+    static bool CanInteract(Player player, PlayerInteractingDoorEventArgs ev)
     {
-        Vector3 colliderPos = ev.Collider.transform.position + ev.Collider.transform.TransformDirection(ev.Collider.VerificationOffset);
+        Vector3 forward = BacktrackHistory.Get(player).LatestForward;
 
-        if (LooksAtCollider(player, colliderPos))
-            return true;
+        if (InteractableCollider.AllInstances.TryGetValue(ev.Door.Base, out Dictionary<byte, InteractableCollider> buttons))
+        {
+            foreach (InteractableCollider button in buttons.Values)
+            {
+                if (LooksAtCollider(player, forward, button.transform.position + button.transform.TransformDirection(button.VerificationOffset)))
+                    return true;
+            }
+        }
 
         foreach (BoxCollider collider in ev.Door.Base.AllColliders)
         {
-            if (LooksAtCollider(player, collider.transform.position + collider.transform.TransformDirection(collider.center)))
+            if (LooksAtCollider(player, forward, collider.transform.TransformPoint(collider.center)))
                 return true;
         }
 
-        Ray ray = new(player.CameraTransform.position, player.CameraTransform.forward);
+        Ray ray = new(player.Camera.position, forward);
 
         if (Physics.Raycast(ray, out RaycastHit hit, 3, (int)(Mask.Doors | Mask.DoorButtons | Mask.Glass)))
         {
@@ -53,16 +60,16 @@ internal class AntiDoorManipulatorModule : PluginModule
             return true;
         }
 
-        Debug.Log($"Door interaction blocked. Player: {player.Nickname}, Door: {ev.Door.Position}, Collider: {colliderPos}");
+        Debug.Log($"Door interaction blocked. Player: {player.Nickname}, Door: {ev.Door.Position}");
         return false;
     }
 
-    static bool LooksAtCollider(Player player, Vector3 colliderPos)
+    static bool LooksAtCollider(Player player, Vector3 forward, Vector3 colliderPos)
     {
         const float AllowedAngle = 30;
 
-        Vector3 direction = (colliderPos - player.CameraTransform.position).normalized;
-        float angle = Vector3.Angle(player.CameraTransform.forward with { y = direction.y }, direction);
+        Vector3 direction = (colliderPos - player.Camera.position).normalized;
+        float angle = Vector3.Angle(forward with { y = direction.y }, direction);
 
         if (angle < AllowedAngle)
             return true;

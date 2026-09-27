@@ -1,3 +1,4 @@
+using LabApi.Features.Wrappers;
 using System;
 using MapGeneration;
 
@@ -20,9 +21,10 @@ internal static class VisibilityGenerator
 
     static void IncludeRoom(HashSet<Vector3Int> visibleCoords, Room room)
     {
-        visibleCoords.Add(room.Identifier.MainCoords);
+        visibleCoords.Add(room.Base.MainCoords);
 
-        if (RoomVisibilityConfig.DiagonalVisibilityRooms.Contains(room.Type))
+        if (RoomVisibilityConfig.DiagonalVisibilityRooms.Contains(room.Name)
+            || RoomVisibilityConfig.GetVariant(room) is "HCZ_Corner_Deep" or "HCZ_Intersection_Junk")
         {
             AddDiagonalNeighbors(visibleCoords, room);
         }
@@ -51,12 +53,14 @@ internal static class VisibilityGenerator
 
     static void ProcessNearestRooms(Room room, HashSet<Vector3Int> visibleCoords)
     {
-        foreach (Room nearestRoom in room.NearestRooms)
+        foreach (RoomIdentifier identifier in room.ConnectedRooms)
         {
+            Room nearestRoom = Room.Get(identifier);
             IncludeRoom(visibleCoords, nearestRoom);
             Vector3Int nearestRoomCoords = RoomUtils.PositionToCoords(nearestRoom.Position);
             Vector3Int direction = RoomUtils.PositionToCoords(room.Position) - nearestRoomCoords;
-            RoomDirectionHelper.IncludeDirection(nearestRoomCoords, direction, true, visibleCoords);
+            if (direction.sqrMagnitude == 1)
+                RoomDirectionHelper.IncludeDirection(nearestRoomCoords, direction, true, visibleCoords);
         }
     }
 }

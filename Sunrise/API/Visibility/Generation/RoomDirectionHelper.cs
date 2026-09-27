@@ -1,3 +1,4 @@
+using LabApi.Features.Wrappers;
 using System;
 using System.Linq;
 using MapGeneration;
@@ -8,7 +9,13 @@ internal static class RoomDirectionHelper
 {
     internal static Vector3Int[] GetSearchDirections(Room room, out bool known)
     {
-        if (RoomVisibilityConfig.KnownDirectionsRooms.TryGetValue(room.Type, out Vector3Int[]? directions))
+        if (RoomVisibilityConfig.KnownDirectionsRooms.TryGetValue(room.Name, out Vector3Int[]? directions))
+        {
+            known = true;
+            return ApplyRoomRotation(directions, room.Rotation);
+        }
+
+        if (RoomVisibilityConfig.KnownVariantDirections.TryGetValue(RoomVisibilityConfig.GetVariant(room), out directions))
         {
             known = true;
             return ApplyRoomRotation(directions, room.Rotation);
@@ -44,7 +51,7 @@ internal static class RoomDirectionHelper
             && Room.Get(identifier) is Room room
             && (RoomConnectionChecker.AreConnected(previousCoords, currentCoords) || knownConnected))
         {
-            visibleCoords.Add(room.Identifier.MainCoords);
+            visibleCoords.Add(room.Base.MainCoords);
             previousCoords = currentCoords;
             currentCoords += direction;
             knownConnected = false; // Only first room is guaranteed when direction is known

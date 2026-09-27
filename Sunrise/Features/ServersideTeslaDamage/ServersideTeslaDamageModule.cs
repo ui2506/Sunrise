@@ -1,6 +1,7 @@
+using LabApi.Events.Arguments.PlayerEvents;
+using PlayerStatsSystem;
 using System;
-using Exiled.API.Enums;
-using Exiled.Events.EventArgs.Player;
+using MEC;
 
 namespace Sunrise.Features.ServersideTeslaDamage;
 
@@ -13,17 +14,18 @@ internal class ServersideTeslaDamageModule : PluginModule
     protected override void OnEnabled()
     {
         TeslaGate.OnBursted += OnTeslaGateBursted;
-        Handlers.Player.Hurt += OnPlayerHurt;
+        Handlers.PlayerEvents.Hurt += OnPlayerHurt;
     }
 
     protected override void OnDisabled()
     {
         TeslaGate.OnBursted -= OnTeslaGateBursted;
-        Handlers.Player.Hurt -= OnPlayerHurt;
+        Handlers.PlayerEvents.Hurt -= OnPlayerHurt;
     }
 
     protected override void OnReset()
     {
+        Timing.KillCoroutines(ServersideTeslaHitreg.CoroutineTag);
         ServersideTeslaHitreg.Dictionary.Clear();
         ServersideTeslaHitreg.ShockedPlayers.Clear();
     }
@@ -46,9 +48,9 @@ internal class ServersideTeslaDamageModule : PluginModule
         }
     }
 
-    static void OnPlayerHurt(HurtEventArgs ev)
+    static void OnPlayerHurt(PlayerHurtEventArgs ev)
     {
-        if (ev.DamageHandler.Type == DamageType.Tesla)
+        if (ev.DamageHandler is UniversalDamageHandler uni && uni.TranslationId == DeathTranslations.Tesla.Id)
             ServersideTeslaHitreg.ShockedPlayers[ev.Player] = Time.time;
     }
 }

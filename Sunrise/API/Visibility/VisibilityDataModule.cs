@@ -1,5 +1,7 @@
+using LabApi.Features.Wrappers;
 using System;
 using MapGeneration;
+using Sunrise.API.Visibility.Generation;
 
 namespace Sunrise.API.Visibility;
 
@@ -15,10 +17,18 @@ internal class VisibilityModule : PluginModule
         SeedSynchronizer.OnGenerationStage -= OnMapGenerationStage;
     }
 
+    protected override void OnReset()
+    {
+        VisibilityData.Clear();
+        VisibilityDataDebugVisualizer.Clear();
+    }
+
     static void OnMapGenerationStage(MapGenerationPhase mapGenerationStage)
     {
         if (mapGenerationStage == MapGenerationPhase.RelativePositioningWaypoints)
         {
+            VisibilityData.Clear();
+            VisibilityDataDebugVisualizer.Clear();
             foreach (Room room in Room.List)
             {
                 try
@@ -27,7 +37,7 @@ internal class VisibilityModule : PluginModule
                 }
                 catch (Exception e)
                 {
-                    Log.Error($"Failed to Get visibility data for room {room.Type} during map generation: {e}");
+                    Log.Error($"Failed to Get visibility data for room {room.Name} during map generation: {e}");
                 }
             }
         }

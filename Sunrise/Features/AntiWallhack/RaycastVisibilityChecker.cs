@@ -1,4 +1,4 @@
-using Exiled.API.Features.Items;
+using LabApi.Features.Wrappers;
 using PlayerRoles.PlayableScps;
 
 namespace Sunrise.Features.AntiWallhack;
@@ -39,7 +39,7 @@ internal static class RaycastVisibilityChecker
 
     public static bool IsVisible(Player playerA, Player playerB)
     {
-        int key = RaycastVisibilityCache.GetKey(playerA.Id, playerB.Id);
+        int key = RaycastVisibilityCache.GetKey(playerA.PlayerId, playerB.PlayerId);
 
         if (RaycastVisibilityCache.TryGet(key, out bool value))
             return value;
@@ -56,8 +56,8 @@ internal static class RaycastVisibilityChecker
 
     static bool CheckDirectionalVisibility(Player observer, Player target)
     {
-        Vector3 observerPosition = observer.CameraTransform.position;
-        Vector3 targetPosition = target.CameraTransform.position;
+        Vector3 observerPosition = observer.Camera.position;
+        Vector3 targetPosition = target.Camera.position;
 
         Vector3 directionToObserver = (observerPosition - targetPosition).normalized;
 
@@ -101,9 +101,9 @@ internal static class RaycastVisibilityChecker
             VisibilityPointsBuffer[i] = position + worldSpaceOffset;
         }
 
-        VisibilityPointsBuffer[^1] = player.CurrentItem is Firearm ?
-            position + player.CameraTransform.rotation * new Vector3(0, -0.5f, 1.2f) :
-            position + player.CameraTransform.rotation * new Vector3(0, -0.5f, 0.5f);
+        VisibilityPointsBuffer[VisibilityPointsBuffer.Length - 1] = player.CurrentItem is FirearmItem ?
+            position + player.Camera.rotation * new Vector3(0, -0.5f, 1.2f) :
+            position + player.Camera.rotation * new Vector3(0, -0.5f, 0.5f);
     }
 }
 
@@ -113,6 +113,8 @@ internal static class RaycastVisibilityCache
     const float VisibleCacheTime = 0.5f;
 
     static readonly Dictionary<int, (float Expiration, bool Value)> CachedVisibility = new();
+
+    internal static void Clear() => CachedVisibility.Clear();
 
     internal static void Save(int key, bool value)
     {

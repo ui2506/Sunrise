@@ -1,3 +1,5 @@
+using LabApi.Features.Wrappers;
+
 namespace Sunrise.API.Backtracking;
 
 /// <summary>
@@ -8,7 +10,7 @@ public struct BacktrackEntry
     public BacktrackEntry(Player player)
     {
         Position = player.Position;
-        Rotation = player.CameraTransform.rotation;
+        Rotation = player.Camera.rotation;
     }
 
     /// <summary>
@@ -28,7 +30,7 @@ public struct BacktrackEntry
 
     public readonly void Restore(Player player)
     {
-        player.Transform.position = Position;
-        player.CameraTransform.rotation = Rotation;
+        player.Position = Position;
+        player.Camera.rotation = Rotation;
     }
 }

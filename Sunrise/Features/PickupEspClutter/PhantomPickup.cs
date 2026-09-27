@@ -1,15 +1,15 @@
-using Exiled.API.Features.Pickups;
+using LabApi.Features.Wrappers;
 using JetBrains.Annotations;
 using MEC;
 using Mirror;
-using NorthwoodLib.Pools;
+
 using Sunrise.API.Visibility;
 
 namespace Sunrise.Features.PickupEspClutter;
 
 internal class PhantomPickup : MonoBehaviour
 {
-    readonly HashSet<Player> _hiddenFor = HashSetPool<Player>.Shared.Rent();
+    readonly HashSet<Player> _hiddenFor = new();
     CoroutineHandle _coroutine;
     NetworkIdentity _netIdentity = null!;
 
@@ -24,9 +24,9 @@ internal class PhantomPickup : MonoBehaviour
     void Start()
     {
         _node = List.AddLast(this);
-        Pickups.Add(_pickup);
 
-        _pickup = Pickup.Get(gameObject);
+        _pickup = Pickup.Get(GetComponent<InventorySystem.Items.Pickups.ItemPickupBase>());
+        Pickups.Add(_pickup);
         _netIdentity = _pickup.Base.netIdentity;
 
         _coroutine = Timing.RunCoroutine(Coroutine());
@@ -37,8 +37,7 @@ internal class PhantomPickup : MonoBehaviour
         List.Remove(_node);
         Pickups.Remove(_pickup);
 
-        _pickup.Destroy();
-        HashSetPool<Player>.Shared.Return(_hiddenFor);
+        _hiddenFor.Clear();
 
         Timing.KillCoroutines(_coroutine);
     }
@@ -138,8 +137,8 @@ internal class PhantomPickup : MonoBehaviour
     internal static void Create()
     {
         PhantomPickupSynchronizer.GetNextPosition(out Vector3 position);
-        ItemType type = PhantomPickupsModule.PhantomItemTypes.RandomItem();
-        var pickup = Pickup.CreateAndSpawn(type, position, Random.rotation);
-        pickup.GameObject.AddComponent<PhantomPickup>();
+        ItemType type = PhantomPickupsModule.PhantomItemTypes[Random.Range(0, PhantomPickupsModule.PhantomItemTypes.Count)];
+        var pickup = Pickup.Create(type, position, Random.rotation);
+        pickup?.GameObject.AddComponent<PhantomPickup>();
     }
 }
