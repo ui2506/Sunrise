@@ -8,7 +8,7 @@ Created to prevent common exploits and add server authority in places where it l
 
 ---
 
-[![Downloads](https://img.shields.io/github/downloads/Banalny-Banan/Sunrise/total?label=Downloads&color=333333&style=for-the-badge)](https://github.com/Banalny-Banan/Sunrise/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/ui2506/Sunrise/total?label=Downloads&color=333333&style=for-the-badge)](https://github.com/ui2506/Sunrise/releases/latest)
 [![Discord](https://img.shields.io/discord/1277301350828478525?style=for-the-badge&logo=discord&logoColor=f9f9f9&label=Discord&color=5865f2)](https://discord.gg/9nAaRVNCq3)
 
 ---
@@ -44,7 +44,7 @@ Edge cases like SCP abilities (e.g., SCP-049’s sense or SCP-939’s hearing) a
 
 ### Raycast Anti-Wallhack
 
-![Preview](https://github.com/Banalny-Banan/Sunrise/blob/master/Previews/RaycastWallhackPreview.gif)
+![Preview](https://github.com/ui2506/Sunrise/blob/master/Previews/RaycastWallhackPreview.gif)
 
 Raycast Anti-Wallhack is an additional feature that complements the system by using raycasts to confirm visibility.
 It yields almost perfect results, but can be computationally expensive.
