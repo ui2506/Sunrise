@@ -1,7 +1,8 @@
-Build with the .NET 10 SDK and .NET Framework 4.8 targeting pack. Restore `Sunrise/packages.config`
-with `nuget restore Sunrise.sln`, then run `dotnet build Sunrise.sln -c Release`.
-Game references live in `_ProjectDependencies`; keep them consistent with the dedicated server's
-`SCPSL_Data/Managed` assemblies, including `Pooling.dll`, LabAPI and the publicized game/Mirror assemblies.
+Build with the .NET 10 SDK and .NET Framework 4.8 targeting pack.
+Set the `SCPSL_Dependencies` environment variable to the dedicated server's `SCPSL_Data/Managed`
+directory, then run `dotnet build Sunrise.sln -c Release`. LabAPI, Harmony and YamlDotNet restore through NuGet.
+The publicized game/Mirror assemblies live in `_ProjectDependencies`; keep them consistent with
+the server assemblies. Other DLL references use `SCPSL_Dependencies`.
 Builds do not automatically copy files to a running server.
 
 Run `dotnet run --project Tests/VisibilityChecks.csproj` for visibility and module lifecycle checks.
