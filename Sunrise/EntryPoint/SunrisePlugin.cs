@@ -10,7 +10,7 @@ public sealed class SunrisePlugin : Plugin<Config>
     public override string Author { get; } = "BanalnyBanan (Updated and ported by ui_2506)";
     public override Version Version { get; } = new(2, 0, 0);
     public override string Description { get; } = "AntiCheat";
-    public override Version RequiredApiVersion { get; } = new(1, 1, 7);
+    public override Version RequiredApiVersion { get; } = LabApi.Features.LabApiProperties.CurrentVersion;
 
     public SunriseLoader Loader { get; } = new();
     public Harmony Harmony { get; } = new("Sunrise");
