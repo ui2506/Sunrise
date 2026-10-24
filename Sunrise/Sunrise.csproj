@@ -19,13 +19,13 @@
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>$(SCPSL_Dependencies)\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
-    <Reference Include="Assembly-CSharp-Publicized">
+    <Reference Include="Assembly-CSharp">
       <HintPath>..\_ProjectDependencies\Assembly-CSharp-Publicized.dll</HintPath>
     </Reference>
     <Reference Include="CommandSystem.Core">
       <HintPath>$(SCPSL_Dependencies)\CommandSystem.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Mirror-Publicized">
+    <Reference Include="Mirror">
       <HintPath>..\_ProjectDependencies\Mirror-Publicized.dll</HintPath>
     </Reference>
     <Reference Include="Pooling">
