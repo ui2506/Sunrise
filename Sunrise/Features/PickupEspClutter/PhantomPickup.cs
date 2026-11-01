@@ -9,7 +9,7 @@ namespace Sunrise.Features.PickupEspClutter;
 
 internal class PhantomPickup : MonoBehaviour
 {
-    readonly HashSet<Player> _hiddenFor = new();
+    readonly HashSet<Player> _hiddenFor = [];
     CoroutineHandle _coroutine;
     NetworkIdentity _netIdentity = null!;
 

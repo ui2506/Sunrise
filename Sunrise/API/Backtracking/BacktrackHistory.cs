@@ -11,7 +11,7 @@ public class BacktrackHistory(Player player)
     const float AcceptedDistance = 0.02f;
     const float AcceptedAngle = 0.1f;
 
-    internal static readonly Dictionary<ReferenceHub, BacktrackHistory> Dictionary = new();
+    internal static readonly Dictionary<ReferenceHub, BacktrackHistory> Dictionary = [];
 
     public readonly CircularBuffer<BacktrackEntry> Entries = new(System.Math.Max(2, (int)(Config.Instance.AccountedLatencySeconds * 60)));
 

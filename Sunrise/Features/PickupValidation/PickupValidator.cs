@@ -16,9 +16,9 @@ namespace Sunrise.Features.PickupValidation;
 
 internal static class PickupValidator
 {
-    internal static readonly Dictionary<Player, float> TemporaryPlayerBypass = new();
-    internal static readonly Dictionary<LockerChamber, float> LockerLastInteraction = new();
-    internal static readonly Dictionary<DoorVariant, float> DoorLastInteraction = new();
+    internal static readonly Dictionary<Player, float> TemporaryPlayerBypass = [];
+    internal static readonly Dictionary<LockerChamber, float> LockerLastInteraction = [];
+    internal static readonly Dictionary<DoorVariant, float> DoorLastInteraction = [];
 
     static readonly RaycastHit[] HitBuffer = new RaycastHit[32];
 

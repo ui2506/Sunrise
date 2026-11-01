@@ -27,9 +27,9 @@ internal class AntiDoorManipulatorModule : PluginModule
         if (!CanInteract(ev.Player, ev))
         {
             if (Config.Instance.Debug)
-                ev.IsAllowed = false;
-            else
                 ev.CanOpen = false;
+            else
+                ev.IsAllowed = false;
         }
     }
 

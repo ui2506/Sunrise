@@ -7,7 +7,7 @@ namespace Sunrise.API.Visibility;
 
 public class VisibilityData
 {
-    static readonly Dictionary<Vector3Int, VisibilityData> Cache = new();
+    static readonly Dictionary<Vector3Int, VisibilityData> Cache = [];
 
     VisibilityData(Room room)
     {

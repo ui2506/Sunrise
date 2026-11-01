@@ -15,7 +15,7 @@ namespace Sunrise.Features.AntiWallhack;
 internal class AntiWallhackModule : PluginModule
 {
     // After player lands their visibility should stay on for some time
-    internal static readonly Dictionary<Player, float> LandingTimes = new();
+    internal static readonly Dictionary<Player, float> LandingTimes = [];
 
     static readonly AutoBenchmark Benchmark = new("Anti Wallhack (without raycasts)");
 

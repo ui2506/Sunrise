@@ -7,7 +7,7 @@ internal static class VisibilityDataDebugVisualizer
 {
     const float PrimitiveDuration = 15;
 
-    static readonly Dictionary<Room, DebugData> RoomDebugData = new();
+    static readonly Dictionary<Room, DebugData> RoomDebugData = [];
 
     internal static void Clear() => RoomDebugData.Clear();
 

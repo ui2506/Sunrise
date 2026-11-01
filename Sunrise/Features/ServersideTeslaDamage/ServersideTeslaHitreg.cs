@@ -8,8 +8,8 @@ internal class ServersideTeslaHitreg(TeslaGate tesla)
     const float ShockDuration = 0.5f;
     internal const string CoroutineTag = "Sunrise.Tesla";
 
-    internal static readonly Dictionary<TeslaGate, ServersideTeslaHitreg> Dictionary = new();
-    internal static readonly Dictionary<Player, float> ShockedPlayers = new();
+    internal static readonly Dictionary<TeslaGate, ServersideTeslaHitreg> Dictionary = [];
+    internal static readonly Dictionary<Player, float> ShockedPlayers = [];
 
     readonly Bounds _bounds = new(tesla.transform.position + Vector3.up * (tesla.sizeOfKiller.y / 2f), (tesla.transform.rotation * new Vector3(4f, 0.7f, 5f)).Abs());
     readonly Collider[] _hitBuffer = new Collider[100];

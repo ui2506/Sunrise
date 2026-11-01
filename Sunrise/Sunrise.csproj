@@ -17,28 +17,28 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>$(SCPSL_Dependencies)\Assembly-CSharp-firstpass.dll</HintPath>
+      <HintPath>$(SL_REFERENCES)\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\_ProjectDependencies\Assembly-CSharp-Publicized.dll</HintPath>
     </Reference>
     <Reference Include="CommandSystem.Core">
-      <HintPath>$(SCPSL_Dependencies)\CommandSystem.Core.dll</HintPath>
+      <HintPath>$(SL_REFERENCES)\CommandSystem.Core.dll</HintPath>
     </Reference>
     <Reference Include="Mirror">
       <HintPath>..\_ProjectDependencies\Mirror-Publicized.dll</HintPath>
     </Reference>
     <Reference Include="Pooling">
-      <HintPath>$(SCPSL_Dependencies)\Pooling.dll</HintPath>
+      <HintPath>$(SL_REFERENCES)\Pooling.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>$(SCPSL_Dependencies)\UnityEngine.dll</HintPath>
+      <HintPath>$(SL_REFERENCES)\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>$(SCPSL_Dependencies)\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>$(SL_REFERENCES)\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.PhysicsModule">
-      <HintPath>$(SCPSL_Dependencies)\UnityEngine.PhysicsModule.dll</HintPath>
+      <HintPath>$(SL_REFERENCES)\UnityEngine.PhysicsModule.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

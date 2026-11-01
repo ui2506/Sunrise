@@ -112,7 +112,7 @@ internal static class RaycastVisibilityCache
     const float NotVisibleCacheTime = 0.1f;
     const float VisibleCacheTime = 0.5f;
 
-    static readonly Dictionary<int, (float Expiration, bool Value)> CachedVisibility = new();
+    static readonly Dictionary<int, (float Expiration, bool Value)> CachedVisibility = [];
 
     internal static void Clear() => CachedVisibility.Clear();
 
