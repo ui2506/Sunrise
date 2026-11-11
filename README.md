@@ -58,10 +58,9 @@ It is recommended to use `benchmark` option in the config to test the performanc
 By default, the server does not perform any line-of-sight checks when a player attempts to pick up an item.
 This allows cheaters to pick up items through walls, doors, and other obstacles.
 
-The pickup validation module checks if the item is genuinely reachable from the player’s point of view using raycasts.
-Multiple raycasts may be performed to avoid false positives.
-As a last resort, the system simulates slight vertical movement to handle edge cases where a player jumped before starting the pickup action.
-If all checks fail, the pickup attempt is denied.
+The pickup validation module checks the item when the player starts searching it, including ammunition and dropped SCP-330 candy.
+A single raycast from the player's camera, using the latest recorded look direction, must hit the requested pickup.
+If the ray hits an obstacle, another item, or nothing within three meters, the pickup attempt is denied.
 
 ## ⚡ Server-Side Tesla Damage
 

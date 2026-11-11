@@ -46,14 +46,14 @@ internal class AntiWallhackModule : PluginModule
     {
         LandingTimes.Remove(ev.Player);
         RemoveVisibility(ev.Player);
-        RaycastVisibilityCache.Clear();
+        RaycastVisibilityCache.Remove(ev.Player.PlayerId);
     }
 
     static void OnChangedRole(PlayerChangedRoleEventArgs ev)
     {
         LandingTimes.Remove(ev.Player);
         RemoveVisibility(ev.Player);
-        RaycastVisibilityCache.Clear();
+        RaycastVisibilityCache.Remove(ev.Player.PlayerId);
     }
 
     static void OnValidatedVisibility(PlayerValidatedVisibilityEventArgs ev)
