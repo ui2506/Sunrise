@@ -6,12 +6,21 @@ internal class PickupValidationModule : PluginModule
 {
     protected override void OnEnabled()
     {
+        if (!Config.Instance.PickupValidation)
+        {
+            Debug.Log("PickupValidation module disabled according to the config!");
+            return;
+        }
+
         Handlers.Scp914Events.ProcessingInventoryItem += OnScp914ProcessingInventoryItem;
         Handlers.PlayerEvents.SearchingPickup += PickupValidator.OnSearchingPickup;
     }
 
     protected override void OnDisabled()
     {
+        if (!Config.Instance.PickupValidation)
+            return;
+
         Handlers.Scp914Events.ProcessingInventoryItem -= OnScp914ProcessingInventoryItem;
         Handlers.PlayerEvents.SearchingPickup -= PickupValidator.OnSearchingPickup;
     }

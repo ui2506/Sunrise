@@ -13,12 +13,21 @@ internal class ServersideTeslaDamageModule : PluginModule
 {
     protected override void OnEnabled()
     {
+        if (!Config.Instance.ServersideTeslaDamage)
+        {
+            Debug.Log("ServersideTeslaDamage module disabled according to the config!");
+            return;
+        }
+
         TeslaGate.OnBursted += OnTeslaGateBursted;
         Handlers.PlayerEvents.Hurt += OnPlayerHurt;
     }
 
     protected override void OnDisabled()
     {
+        if (!Config.Instance.ServersideTeslaDamage)
+            return;
+
         TeslaGate.OnBursted -= OnTeslaGateBursted;
         Handlers.PlayerEvents.Hurt -= OnPlayerHurt;
     }
@@ -32,9 +41,6 @@ internal class ServersideTeslaDamageModule : PluginModule
 
     static void OnTeslaGateBursted(TeslaGate tesla)
     {
-        if (!Config.Instance.ServersideTeslaDamage)
-            return;
-
         if (tesla == null)
             return;
 

@@ -23,6 +23,12 @@ internal class AntiWallhackModule : PluginModule
 
     protected override void OnEnabled()
     {
+        if (!Config.Instance.AntiWallhack)
+        {
+            Debug.Log("AntiWallHack module disabled according to the config!");
+            return;
+        }
+
         Handlers.PlayerEvents.ValidatedVisibility += OnValidatedVisibility;
         Handlers.PlayerEvents.Left += OnPlayerLeft;
         Handlers.PlayerEvents.ChangedRole += OnChangedRole;
@@ -30,6 +36,9 @@ internal class AntiWallhackModule : PluginModule
 
     protected override void OnDisabled()
     {
+        if (!Config.Instance.AntiWallhack)
+            return;
+
         Handlers.PlayerEvents.ValidatedVisibility -= OnValidatedVisibility;
         Handlers.PlayerEvents.Left -= OnPlayerLeft;
         Handlers.PlayerEvents.ChangedRole -= OnChangedRole;
@@ -58,10 +67,10 @@ internal class AntiWallhackModule : PluginModule
 
     static void OnValidatedVisibility(PlayerValidatedVisibilityEventArgs ev)
     {
-        if (!Config.Instance.AntiWallhack || ev.Player == ev.Target)
+        if (ev.Player == ev.Target)
             return;
 
-        if (ev.Player.Role == PlayerRoles.RoleTypeId.Spectator)
+        if (Config.Instance.SpectatorAntiWallhack && ev.Player.Role == PlayerRoles.RoleTypeId.Spectator)
         {
             Player? observer = ev.Player.CurrentlySpectating;
 

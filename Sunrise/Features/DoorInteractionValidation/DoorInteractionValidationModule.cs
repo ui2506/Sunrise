@@ -11,17 +11,26 @@ internal class AntiDoorManipulatorModule : PluginModule
 {
     protected override void OnEnabled()
     {
+        if (!Config.Instance.DoorInteractionValidation)
+        {
+            Debug.Log("DoorInteractionValidation module disabled according to the config!");
+            return;
+        }
+
         Handlers.PlayerEvents.InteractingDoor += OnInteractingDoor;
     }
 
     protected override void OnDisabled()
     {
+        if (!Config.Instance.DoorInteractionValidation)
+            return;
+
         Handlers.PlayerEvents.InteractingDoor -= OnInteractingDoor;
     }
 
     static void OnInteractingDoor(PlayerInteractingDoorEventArgs ev)
     {
-        if (!Config.Instance.DoorInteractionValidation || ev.Player.RoleBase is not IFpcRole || ev.Player.IsNoclipEnabled || ev.Door.DoorName == DoorName.Lcz330Chamber)
+        if (ev.Player.RoleBase is not IFpcRole || ev.Player.IsNoclipEnabled || ev.Door.DoorName == DoorName.Lcz330Chamber)
             return;
 
         if (!CanInteract(ev.Player, ev))

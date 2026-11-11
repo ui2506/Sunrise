@@ -26,6 +26,9 @@ public sealed class Config
     )]
     public bool RaycastAntiWallhack { get; set; } = true;
 
+    [Description("Anti-wallhack for spectators. Spectators only see the players that are currently visible to a living player. (Overwatch still see all players) (There is a delay of approximately 0.3 seconds before players appear.)")]
+    public bool SpectatorAntiWallhack { get; set; } = true;
+
     [Description("Prevents picking up items through walls. Performance impact negligible.")]
     public bool PickupValidation { get; set; } = true;
 

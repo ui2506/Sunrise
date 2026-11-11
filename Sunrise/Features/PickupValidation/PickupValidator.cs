@@ -11,7 +11,7 @@ internal static class PickupValidator
 
     internal static void OnSearchingPickup(PlayerSearchingPickupEventArgs ev)
     {
-        if (!Config.Instance.PickupValidation || !ev.IsAllowed || ev.Player.IsNoclipEnabled)
+        if (!ev.IsAllowed || ev.Player.IsNoclipEnabled)
             return;
 
         if (TemporaryPlayerBypass.TryGetValue(ev.Player, out float time) && time > Time.time)
