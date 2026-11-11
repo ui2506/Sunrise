@@ -8,7 +8,7 @@ public sealed class SunrisePlugin : Plugin<Config>
 {
     public override string Name { get; } = "Sunrise";
     public override string Author { get; } = "BanalnyBanan (Updated and ported by ui_2506)";
-    public override Version Version { get; } = new(2, 0, 1);
+    public override Version Version { get; } = new(2, 1, 0);
     public override string Description { get; } = "AntiCheat";
     public override Version RequiredApiVersion { get; } = LabApi.Features.LabApiProperties.CurrentVersion;
 
