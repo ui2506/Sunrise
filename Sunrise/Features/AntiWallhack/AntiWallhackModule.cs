@@ -1,14 +1,14 @@
-using System;
 using HarmonyLib;
+using InventorySystem.Items;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Features.Wrappers;
-using InventorySystem.Items;
 using PlayerRoles.FirstPersonControl;
 using PlayerRoles.PlayableScps.Scp049;
 using PlayerRoles.PlayableScps.Scp096;
 using PlayerRoles.PlayableScps.Scp939;
 using Sunrise.API.Visibility;
 using Sunrise.Features.AntiWallhack.ForcedVisibility;
+using System;
 
 namespace Sunrise.Features.AntiWallhack;
 
@@ -16,6 +16,8 @@ internal class AntiWallhackModule : PluginModule
 {
     // After player lands their visibility should stay on for some time
     internal static readonly Dictionary<Player, float> LandingTimes = [];
+
+    static readonly Dictionary<Player, List<Player>> VisiblePlayers = [];
 
     static readonly AutoBenchmark Benchmark = new("Anti Wallhack (without raycasts)");
 
@@ -36,28 +38,50 @@ internal class AntiWallhackModule : PluginModule
     protected override void OnReset()
     {
         LandingTimes.Clear();
+        VisiblePlayers.Clear();
         RaycastVisibilityCache.Clear();
     }
 
     static void OnPlayerLeft(PlayerLeftEventArgs ev)
     {
         LandingTimes.Remove(ev.Player);
-        RaycastVisibilityCache.Clear();
+        RemoveVisibility(ev.Player);
+        RaycastVisibilityCache.Remove(ev.Player.PlayerId);
     }
 
     static void OnChangedRole(PlayerChangedRoleEventArgs ev)
     {
         LandingTimes.Remove(ev.Player);
-        RaycastVisibilityCache.Clear();
+        RemoveVisibility(ev.Player);
+        RaycastVisibilityCache.Remove(ev.Player.PlayerId);
     }
 
     static void OnValidatedVisibility(PlayerValidatedVisibilityEventArgs ev)
     {
-        if (!Config.Instance.AntiWallhack || !ev.IsVisible || ev.Player == ev.Target)
+        if (!Config.Instance.AntiWallhack || ev.Player == ev.Target)
             return;
 
-        if (ev.Player.RoleBase is not IFpcRole observerRole || ev.Target.RoleBase is not IFpcRole)
+        if (ev.Player.Role == PlayerRoles.RoleTypeId.Spectator)
+        {
+            Player? observer = ev.Player.CurrentlySpectating;
+
+            if (observer == null || (observer != ev.Target && (!VisiblePlayers.TryGetValue(observer, out List<Player> visiblePlayers) || !visiblePlayers.Contains(ev.Target))))
+                ev.IsVisible = false;
+
             return;
+        }
+
+        if (!ev.IsVisible)
+        {
+            SaveVisibility(ev.Player, ev.Target, false);
+            return;
+        }
+
+        if (ev.Player.RoleBase is not IFpcRole observerRole || ev.Target.RoleBase is not IFpcRole)
+        {
+            SaveVisibility(ev.Player, ev.Target, true);
+            return;
+        }
 
         try
         {
@@ -90,7 +114,32 @@ internal class AntiWallhackModule : PluginModule
         finally
         {
             Benchmark.Stop();
+            SaveVisibility(ev.Player, ev.Target, ev.IsVisible);
         }
+    }
+
+    static void SaveVisibility(Player observer, Player target, bool visible)
+    {
+        if (!VisiblePlayers.TryGetValue(observer, out List<Player> visiblePlayers))
+        {
+            if (!visible)
+                return;
+
+            VisiblePlayers[observer] = visiblePlayers = [];
+        }
+
+        if (!visible)
+            visiblePlayers.Remove(target);
+        else if (!visiblePlayers.Contains(target))
+            visiblePlayers.Add(target);
+    }
+
+    static void RemoveVisibility(Player player)
+    {
+        VisiblePlayers.Remove(player);
+
+        foreach (List<Player> visiblePlayers in VisiblePlayers.Values)
+            visiblePlayers.Remove(player);
     }
 
     static bool IsExceptionalCase(Player observer, IFpcRole observerRole, Player target)

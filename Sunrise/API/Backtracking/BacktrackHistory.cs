@@ -135,13 +135,16 @@ public class BacktrackHistory(Player player)
         return false;
     }
 
-    public static BacktrackHistory Get(Player player)
-    {
-        return Dictionary.GetOrAdd(player.ReferenceHub, () => new(player));
-    }
+    public static BacktrackHistory Get(Player player) => Get(player.ReferenceHub);
 
     public static BacktrackHistory Get(ReferenceHub hub)
     {
-        return Dictionary.GetOrAdd(hub, () => new(Player.Get(hub)));
+        if (!Dictionary.TryGetValue(hub, out BacktrackHistory history))
+        {
+            history = new(Player.Get(hub));
+            Dictionary.Add(hub, history);
+        }
+
+        return history;
     }
 }

@@ -14,8 +14,6 @@ internal static class RaycastVisibilityChecker
 {
     static readonly Vector2[] VisibilityPointOffsets =
     [
-        new(0, 0), // camera
-
         new(0.65f, -0.13f), // right shoulder (far)
         new(-0.65f, -0.13f), // left shoulder (far)
 
@@ -58,6 +56,14 @@ internal static class RaycastVisibilityChecker
     {
         Vector3 observerPosition = observer.Camera.position;
         Vector3 targetPosition = target.Camera.position;
+
+        if (!Physics.Linecast(observerPosition, targetPosition, VisionInformation.VisionLayerMask))
+        {
+            Debug.DrawLine(observerPosition, targetPosition, Colors.Blue * 50, 0.11f);
+            return true;
+        }
+
+        Debug.DrawPoint(targetPosition, Colors.Orange * 50, 0.11f);
 
         Vector3 directionToObserver = (observerPosition - targetPosition).normalized;
 
@@ -113,8 +119,23 @@ internal static class RaycastVisibilityCache
     const float VisibleCacheTime = 0.5f;
 
     static readonly Dictionary<int, (float Expiration, bool Value)> CachedVisibility = [];
+    static readonly List<int> KeysToRemove = [];
 
     internal static void Clear() => CachedVisibility.Clear();
+
+    internal static void Remove(int playerId)
+    {
+        foreach (int key in CachedVisibility.Keys)
+        {
+            if ((int)((uint)key >> 16) == playerId || (key & 0xffff) == playerId)
+                KeysToRemove.Add(key);
+        }
+
+        foreach (int key in KeysToRemove)
+            CachedVisibility.Remove(key);
+
+        KeysToRemove.Clear();
+    }
 
     internal static void Save(int key, bool value)
     {
