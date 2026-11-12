@@ -17,6 +17,9 @@ internal static class PickupValidator
         if (TemporaryPlayerBypass.TryGetValue(ev.Player, out float time) && time > Time.time)
             return;
 
+        if (ev.Pickup.Transform.localScale != Vector3.one)
+            return;
+
         //foreach (Elevator elevator in Elevator.List)
         //{
         //    if (elevator.WorldSpaceRelativeBounds.Contains(ev.Player.Position) && (uint)(elevator.Base.CurSequence - 2) <= 1u)
