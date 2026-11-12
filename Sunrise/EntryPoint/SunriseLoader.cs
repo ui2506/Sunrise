@@ -1,6 +1,7 @@
 using Sunrise.API.Backtracking;
 using Sunrise.API.Visibility;
 using Sunrise.Features.AntiWallhack;
+using Sunrise.Features.AntiBigStep;
 using Sunrise.Features.DoorInteractionValidation;
 using Sunrise.Features.ExploitPatches;
 using Sunrise.Features.PickupValidation;
@@ -18,6 +19,7 @@ public sealed class SunriseLoader : PluginModule
 
         // Features
         new AntiWallhackModule(),
+        new AntiBigStepModule(),
         new PickupValidationModule(),
         new ServersideTeslaDamageModule(),
         new AntiDoorManipulatorModule(),

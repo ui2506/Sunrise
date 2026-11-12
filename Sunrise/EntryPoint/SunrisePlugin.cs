@@ -13,12 +13,11 @@ public sealed class SunrisePlugin : Plugin<Config>
     public override Version RequiredApiVersion { get; } = LabApi.Features.LabApiProperties.CurrentVersion;
 
     public SunriseLoader Loader { get; } = new();
-    public Harmony Harmony { get; } = new("Sunrise");
+    public static Harmony Harmony { get; } = new("Sunrise");
 
     public override void Enable()
     {
         Loader.Enable();
-        Harmony.PatchAll();
     }
 
     public override void Disable()

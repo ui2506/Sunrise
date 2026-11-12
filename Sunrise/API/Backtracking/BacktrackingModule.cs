@@ -1,4 +1,5 @@
 using LabApi.Events.Arguments.PlayerEvents;
+using Sunrise.Features.ServersideBacktrack;
 
 namespace Sunrise.API.Backtracking;
 
@@ -11,6 +12,14 @@ internal class BacktrackingModule : PluginModule
 {
     protected override void OnEnabled()
     {
+        if (!Config.Instance.ServersideBacktrack && !Config.Instance.PickupValidation && !Config.Instance.DoorInteractionValidation)
+            return;
+
+        SunrisePlugin.Harmony.CreateClassProcessor(typeof(FpcMouseLookPatch)).Patch();
+
+        if (Config.Instance.ServersideBacktrack)
+            SunrisePlugin.Harmony.CreateClassProcessor(typeof(BacktrackOverridePatch)).Patch();
+
         Handlers.ServerEvents.RoundRestarted += OnReset;
         Handlers.PlayerEvents.Left += OnPlayerLeft;
         Handlers.PlayerEvents.ChangedRole += OnChangedRole;
