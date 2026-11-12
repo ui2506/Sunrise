@@ -41,6 +41,21 @@ public sealed class Config
     [Description("Prevents cheaters from interacting with doors they're not looking at. Performance impact negligible.")]
     public bool DoorInteractionValidation { get; set; } = true;
 
+    [Description("Detects BigStep movement. Uses DetectAction for server differences greater than 1 unit.")]
+    public bool AntiBigStep { get; set; } = true;
+
+    [Description("Detection action: none, kick, or ban.")]
+    public string DetectAction { get; set; } = "ban";
+
+    [Description("Detection ban duration in seconds. Must be positive.")]
+    public long DetectBanDuration { get; set; } = 1577000000;
+
+    [Description("Send detection reports to local administrators through the base game report.")]
+    public bool DetectReport { get; set; } = true;
+
+    [Description("Discord webhook URL for detection reports (empty to disable).")]
+    public string DetectWebhook { get; set; } = "";
+
     // TODO fix
     /*[Description("Clutters ESP cheats with phantom pickups that disappear when players get close. Performance impact minimal.")]
     public bool PhantomPickups { get; set; } = true;*/

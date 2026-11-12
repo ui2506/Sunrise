@@ -29,6 +29,8 @@ internal class AntiWallhackModule : PluginModule
             return;
         }
 
+        SunrisePlugin.Harmony.CreateClassProcessor(typeof(PlayerLandingPatch)).Patch();
+
         Handlers.PlayerEvents.ValidatedVisibility += OnValidatedVisibility;
         Handlers.PlayerEvents.Left += OnPlayerLeft;
         Handlers.PlayerEvents.ChangedRole += OnChangedRole;
@@ -36,9 +38,6 @@ internal class AntiWallhackModule : PluginModule
 
     protected override void OnDisabled()
     {
-        if (!Config.Instance.AntiWallhack)
-            return;
-
         Handlers.PlayerEvents.ValidatedVisibility -= OnValidatedVisibility;
         Handlers.PlayerEvents.Left -= OnPlayerLeft;
         Handlers.PlayerEvents.ChangedRole -= OnChangedRole;
