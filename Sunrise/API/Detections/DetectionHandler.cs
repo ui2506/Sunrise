@@ -4,7 +4,6 @@ using System;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web.Script.Serialization;
 
 namespace Sunrise.API.Detections;
 
@@ -19,7 +18,7 @@ internal class DetectionHandler : PluginModule
 
     static void OnLeft(PlayerLeftEventArgs ev) => ReportCoolDown.Remove(ev.Player);
 
-    internal static void Handle(Player player, string detection, string details)
+    internal static void Handle(Player player, string detection, string details, ActionType action = ActionType.None)
     {
         if (ReportCoolDown.TryGetValue(player, out float nextReport) && Time.time < nextReport)
             return;
@@ -37,18 +36,18 @@ internal class DetectionHandler : PluginModule
         if (Config.Instance.DetectReport)
             CheaterReport.SubmitReport("SERVER", player.UserId, $"{reason}\n{details}", player.NetworkId, "Sunrise", player.Nickname, false);
 
-        switch (Config.Instance.DetectAction?.Trim().ToLowerInvariant())
-        {
-            case "none":
-                break;
+        if (action == ActionType.None)
+            action = Config.Instance.DetectAction;
 
-            case "kick":
+        switch (action)
+        {
+            case ActionType.Kick:
                 if (!player.Kick(reason))
                     Log.Warn($"[DetectionHandler] Kick was rejected for {player.UserId}.");
 
                 break;
 
-            case "ban":
+            case ActionType.Ban:
                 if (Config.Instance.DetectBanDuration <= 0)
                 {
                     Log.Warn($"[DetectionHandler] DetectBanDuration must be between 1 and {uint.MaxValue} seconds. No punishment applied.");
@@ -60,14 +59,10 @@ internal class DetectionHandler : PluginModule
 
                 break;
 
-            case "kill":
+            case ActionType.Kill:
                 if (!player.Kill(reason))
                     Log.Warn($"[DetectionHandler] Kill was rejected for {player.UserId}.");
 
-                break;
-
-            default:
-                Log.Warn($"[DetectionHandler] Unknown DetectAction '{Config.Instance.DetectAction}'. No punishment applied.");
                 break;
         }
     }
@@ -79,7 +74,7 @@ internal class DetectionHandler : PluginModule
 
         try
         {
-            string json = new JavaScriptSerializer().Serialize(new
+            string json = Utf8Json.JsonSerializer.ToJsonString(new
             {
                 content = report.Length > 2000 ? report.Substring(0, 2000) : report,
                 allowed_mentions = new { parse = Array.Empty<string>() },
@@ -96,4 +91,12 @@ internal class DetectionHandler : PluginModule
             Log.Warn($"[DetectionHandler] Webhook failed ({exception.GetType().Name}).");
         }
     }
+}
+
+public enum ActionType
+{
+    None,
+    Kill,
+    Kick,
+    Ban
 }
