@@ -1,4 +1,5 @@
 using Sunrise.API.Backtracking;
+using Sunrise.API.Detections;
 using Sunrise.API.Visibility;
 using Sunrise.Features.AntiWallhack;
 using Sunrise.Features.AntiBigStep;
@@ -14,6 +15,7 @@ public sealed class SunriseLoader : PluginModule
     protected override List<PluginModule> SubModules { get; } =
     [
         // API
+        new DetectionHandler(),
         new BacktrackingModule(),
         new VisibilityModule(),
 

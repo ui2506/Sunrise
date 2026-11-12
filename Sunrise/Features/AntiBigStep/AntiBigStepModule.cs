@@ -2,6 +2,7 @@ using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Features.Wrappers;
 using PlayerRoles.FirstPersonControl;
 using PlayerRoles.FirstPersonControl.NetworkMessages;
+using Sunrise.API.Detections;
 
 namespace Sunrise.Features.AntiBigStep;
 
@@ -21,16 +22,22 @@ internal class AntiBigStepModule : PluginModule
         SunrisePlugin.Harmony.CreateClassProcessor(typeof(ServerOverridePositionPatch)).Patch();
 
         Handlers.PlayerEvents.ChangedRole += OnChangedRole;
+        Handlers.PlayerEvents.Left += OnLeft;
     }
 
     protected override void OnDisabled()
     {
+        if (!Config.Instance.AntiBigStep)
+            return;
+
         Handlers.PlayerEvents.ChangedRole -= OnChangedRole;
+        Handlers.PlayerEvents.Left -= OnLeft;
     }
 
     protected override void OnReset() => Players.Clear();
 
     static void OnChangedRole(PlayerChangedRoleEventArgs ev) => Players.Remove(ev.Player.ReferenceHub);
+    static void OnLeft(PlayerLeftEventArgs ev) => Players.Remove(ev.Player.ReferenceHub);
 
     internal static void OnPositionOverridden(ReferenceHub hub)
     {
@@ -43,12 +50,6 @@ internal class AntiBigStepModule : PluginModule
 
     internal static void OnMovement(ReferenceHub hub, FpcSyncData sync)
     {
-        if (!Config.Instance.AntiBigStep)
-        {
-            Players.Remove(hub);
-            return;
-        }
-
         if (!sync._bitPosition)
             return;
 
@@ -66,18 +67,18 @@ internal class AntiBigStepModule : PluginModule
         if (!Players.TryGetValue(hub, out MovementData data))
             Players[hub] = data = new();
 
-        float now = Time.time;
         Vector3 position = sync._position.Position;
+
+        float now = Time.time;
         float rise = position.y - data.Position.y;
         float elapsed = now - data.Time;
-        bool hasPrevious = data.HasPosition && data.Waypoint == sync._position.WaypointId;
 
         data.Position = position;
         data.Time = now;
         data.Waypoint = sync._position.WaypointId;
         data.HasPosition = true;
 
-        if (!hasPrevious || now < data.IgnoreUntil || now < data.NextWarning)
+        if (!(data.HasPosition && data.Waypoint == sync._position.WaypointId) || now < data.IgnoreUntil || now < data.NextWarning)
             return;
 
         float upwardSpeed = Mathf.Max(module.JumpSpeed * module.Motor.JumpController.JumpMultiplier, module.Motor.MoveDirection.y);
@@ -98,7 +99,18 @@ internal class AntiBigStepModule : PluginModule
 
         Player player = Player.Get(hub);
 
-        Log.Error($"[AntiBigStep] Possible BigStep detected: Player {player.Nickname} ({player.UserId})\nRoom: {player.Room?.Name ?? MapGeneration.RoomName.Unnamed} {player.Room?.Transform.InverseTransformPoint(player.Position) ?? Vector3.zero}\n. rise: {rise:F2}, interval: {elapsed:F3}s, server difference: {serverDifference:F2}, step offset: {module.CharController.stepOffset:F2}.");
+        string details = $"Room: {player.Room?.Name ?? MapGeneration.RoomName.Unnamed} {player.Room?.Transform.InverseTransformPoint(player.Position) ?? Vector3.zero}\nrise: {rise:F2}, interval: {elapsed:F3}s, server difference: {serverDifference:F2}, step offset: {module.CharController.stepOffset:F2}.";
+
+        if (serverDifference > 1f)
+        {
+            DetectionHandler.Handle(player, "BigStep", details);
+        }
+        else
+        {
+            player.Position = data.Position;
+
+            Log.Warn($"[AntiBigStep] Possible BigStep detected: Player {player.Nickname} ({player.UserId})\n{details}");
+        }
     }
 
     internal static bool IsSuspicious(float rise, float elapsed, float upwardSpeed, float serverDifference)
