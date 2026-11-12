@@ -1,3 +1,4 @@
+using Sunrise.API.Detections;
 using System.ComponentModel;
 
 namespace Sunrise.EntryPoint;
@@ -44,8 +45,8 @@ public sealed class Config
     [Description("Detects BigStep movement. Uses DetectAction for server differences greater than 1 unit.")]
     public bool AntiBigStep { get; set; } = true;
 
-    [Description("Detection action: none, kick, or ban.")]
-    public string DetectAction { get; set; } = "ban";
+    [Description("Detection action: None, Kick, Ban or Kill.")]
+    public ActionType DetectAction { get; set; } = ActionType.Ban;
 
     [Description("Detection ban duration in seconds. Must be positive.")]
     public long DetectBanDuration { get; set; } = 1577000000;
