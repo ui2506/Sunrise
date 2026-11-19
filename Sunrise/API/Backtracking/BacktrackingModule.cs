@@ -18,7 +18,10 @@ internal class BacktrackingModule : PluginModule
         SunrisePlugin.Harmony.CreateClassProcessor(typeof(FpcMouseLookPatch)).Patch();
 
         if (Config.Instance.ServersideBacktrack)
+        {
             SunrisePlugin.Harmony.CreateClassProcessor(typeof(BacktrackOverridePatch)).Patch();
+            //SunrisePlugin.Harmony.CreateClassProcessor(typeof(Scp096TrackerPatch)).Patch();
+        }
 
         Handlers.ServerEvents.RoundRestarted += OnReset;
         Handlers.PlayerEvents.Left += OnPlayerLeft;

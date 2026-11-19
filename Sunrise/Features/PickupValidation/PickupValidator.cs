@@ -12,7 +12,7 @@ namespace Sunrise.Features.PickupValidation;
 internal static class PickupValidator
 {
     internal static readonly Dictionary<Player, float> TemporaryPlayerBypass = [];
-    static readonly Dictionary<Player, (Pickup Pickup, double FinishTime)> Searches = [];
+    static readonly Dictionary<Player, (Pickup Pickup, float FinishTime)> Searches = [];
 
     internal static void OnSearchingPickup(PlayerSearchingPickupEventArgs ev)
     {
@@ -32,17 +32,15 @@ internal static class PickupValidator
 
         float duration = ev.Pickup.Base.SearchTimeForPlayer(ev.Player.ReferenceHub);
 
+        Log.Info(duration);
+
         if (duration <= 0f)
         {
             ev.IsAllowed = false;
             return;
         }
 
-        double latency = LiteNetLib4MirrorServer.Peers.TryGetValue(ev.Player.ConnectionToClient.connectionId, out NetPeer peer)
-            ? peer.Ping * 0.001 * ev.Player.ReferenceHub.searchCoordinator.serverDelayThreshold
-            : 0d;
-
-        Searches[ev.Player] = (ev.Pickup, NetworkTime.time + duration - latency);
+        Searches[ev.Player] = (ev.Pickup, Time.time + duration);
     }
 
     internal static void OnPickingUp<T>(T ev) where T : IPlayerEvent, IPickupEvent, ICancellableEvent
@@ -54,7 +52,13 @@ internal static class PickupValidator
 
         #pragma warning restore CS8604
 
-        if (NetworkTime.time + 0.001 < search.FinishTime)
+        float pickedUpTime = search.FinishTime - Time.time;
+
+        double latency = LiteNetLib4MirrorServer.Peers.TryGetValue(ev.Player.ConnectionToClient.connectionId, out NetPeer peer)
+            ? peer.Ping * 0.001 * ev.Player.ReferenceHub.searchCoordinator.serverDelayThreshold
+            : 0d;
+
+        if (pickedUpTime - latency > 0.01f)
             ev.IsAllowed = false;
 
         Searches.Remove(ev.Player);
