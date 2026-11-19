@@ -47,8 +47,12 @@ internal static class PickupValidator
 
     internal static void OnPickingUp<T>(T ev) where T : IPlayerEvent, IPickupEvent, ICancellableEvent
     {
+        #pragma warning disable CS8604
+
         if (!Searches.TryGetValue(ev.Player, out var search) || search.Pickup != ev.Pickup)
             return;
+
+        #pragma warning restore CS8604
 
         if (NetworkTime.time + 0.001 < search.FinishTime)
             ev.IsAllowed = false;
