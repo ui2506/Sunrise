@@ -32,8 +32,6 @@ internal static class PickupValidator
 
         float duration = ev.Pickup.Base.SearchTimeForPlayer(ev.Player.ReferenceHub);
 
-        Log.Info(duration);
-
         if (duration <= 0f)
         {
             ev.IsAllowed = false;
