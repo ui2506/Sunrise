@@ -30,6 +30,9 @@ public class VisibilityData
     public bool IsVisible(Player player) => player is not { IsDestroyed: false } || IsVisible(GetRoom(player.Position));
     public bool IsVisible(Room? room) => room?.Base is not RoomIdentifier identifier || VisibleCoords.Contains(identifier.MainCoords);
 
+    internal static bool InRange(Vector3 observerPosition, float sqrDistance) => sqrDistance <= 30f * 30f
+        || (sqrDistance <= 50f * 50f && GetRoom(observerPosition)?.Zone == FacilityZone.Surface);
+
     internal static int GetVisionMask(Room? observer, Room? target)
     {
         int mask = VisionInformation.VisionLayerMask;

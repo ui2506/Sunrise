@@ -88,6 +88,9 @@ internal class PlayerAntiWallHackModule : PluginModule
 
         if (Config.Instance.SpectatorAntiWallhack && ev.Player.Role == RoleTypeId.Spectator)
         {
+            if (!ev.IsVisible)
+                return;
+
             if (AntiWallHackModule.TryGetDeathPosition(ev.Player, out Vector3 position))
             {
                 if ((position - ev.Target.Position).sqrMagnitude > 30f * 30f)
@@ -120,15 +123,26 @@ internal class PlayerAntiWallHackModule : PluginModule
         {
             Benchmark.Start();
 
+            Vector3 observerPosition = observerRole.FpcModule.Position;
+            Vector3 targetPosition = ev.Target.Position;
+            float sqrDistance = (observerPosition - targetPosition).sqrMagnitude;
+            if (!VisibilityData.InRange(observerPosition, sqrDistance))
+            {
+                ev.IsVisible = false;
+                return;
+            }
+
             if (IsExceptionalObserver(ev.Player, ev.Target))
                 return;
 
             float forcedVisibility = GetVisibilityRange(ev.Target);
 
-            if ((ev.Player.Position - ev.Target.Position).sqrMagnitude < forcedVisibility * forcedVisibility)
+            if (sqrDistance < forcedVisibility * forcedVisibility)
                 return;
 
-            if (VisibilityData.Get(observerRole.FpcModule.Position) is VisibilityData visibility && !visibility.IsVisible(ev.Target))
+            Room? observerRoom = VisibilityData.GetRoom(observerPosition);
+            Room? targetRoom = VisibilityData.GetRoom(targetPosition);
+            if (observerRoom != null && !ev.Target.IsDestroyed && !VisibilityData.Get(observerRoom).IsVisible(targetRoom))
             {
                 ev.IsVisible = false;
                 return;
@@ -136,7 +150,7 @@ internal class PlayerAntiWallHackModule : PluginModule
 
             Benchmark.Stop();
 
-            if (Config.Instance.RaycastAntiWallhack && !RaycastVisibilityChecker.IsVisible(ev.Player, ev.Target))
+            if (Config.Instance.RaycastAntiWallhack && !RaycastVisibilityChecker.IsVisible(ev.Player, ev.Target, observerRoom, targetRoom))
                 ev.IsVisible = false;
         }
         catch (Exception e)

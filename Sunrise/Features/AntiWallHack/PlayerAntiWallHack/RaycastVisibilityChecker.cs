@@ -35,7 +35,7 @@ internal static class RaycastVisibilityChecker
 
     static readonly AutoBenchmark Benchmark = new("Raycast Anti Wallhack");
 
-    public static bool IsVisible(Player playerA, Player playerB)
+    public static bool IsVisible(Player playerA, Player playerB, Room? observerRoom, Room? targetRoom)
     {
         int key = RaycastVisibilityCache.GetKey(playerA.PlayerId, playerB.PlayerId);
 
@@ -43,7 +43,9 @@ internal static class RaycastVisibilityChecker
             return value;
 
         Benchmark.Start();
-        int mask = VisibilityData.GetVisionMask(VisibilityData.GetRoom(playerA.Position), VisibilityData.GetRoom(playerB.Position));
+
+        int mask = VisibilityData.GetVisionMask(observerRoom, targetRoom);
+
         bool result = CheckDirectionalVisibility(playerA, playerB, mask) || CheckDirectionalVisibility(playerB, playerA, mask);
         
         RaycastVisibilityCache.Save(key, result);

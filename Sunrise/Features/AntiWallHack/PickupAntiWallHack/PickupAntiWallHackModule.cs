@@ -209,13 +209,21 @@ internal class PickupAntiWallHackModule : PluginModule
         if (player.RoleBase is not IFpcRole && player.RoleBase is not Scp079Role)
             return false;
 
+        Vector3 camera = player.RoleBase is Scp079Role scp079 ? scp079.CameraPosition : player.Camera.position;
+
+        float sqrDistance = (camera - pickup.Position).sqrMagnitude;
+
+        if (sqrDistance <= 5f * 5f)
+            return true;
+
+        if (!VisibilityData.InRange(camera, sqrDistance))
+            return false;
+
         if (!Pickups.TryGetValue(pickup, out VisibilityState state))
             Pickups[pickup] = state = new(pickup);
 
         if (state.Players.TryGetValue(player, out var cache) && cache.Expiration > slot)
             return cache.Visible;
-
-        Vector3 camera = player.RoleBase is Scp079Role scp079 ? scp079.CameraPosition : player.Camera.position;
 
         bool visible = CheckVisibility(camera, pickup, state);
 
@@ -227,7 +235,7 @@ internal class PickupAntiWallHackModule : PluginModule
     static bool CheckVisibility(Vector3 camera, ItemPickupBase pickup, VisibilityState state)
     {
         Room? observerRoom = VisibilityData.GetRoom(camera);
-        Room? targetRoom = VisibilityData.GetRoom(pickup.Position);
+        Room? targetRoom = state.GetRoom();
 
         if (observerRoom != null && !VisibilityData.Get(observerRoom).IsVisible(targetRoom))
             return false;
@@ -256,9 +264,23 @@ internal class PickupAntiWallHackModule : PluginModule
     class VisibilityState(ItemPickupBase pickup)
     {
         public readonly Dictionary<Player, (int Expiration, bool Visible)> Players = [];
-        readonly Collider? _collider = pickup.GetComponentInChildren<Collider>();
+        Collider? _collider;
+        int _roomFrame = -1;
+        Room? _room;
         int _boundsFrame = -1;
         Bounds _bounds;
+
+        public Room? GetRoom()
+        {
+            int frame = Time.frameCount;
+            if (_roomFrame != frame)
+            {
+                _room = VisibilityData.GetRoom(pickup.Position);
+                _roomFrame = frame;
+            }
+
+            return _room;
+        }
 
         public Bounds GetBounds()
         {
@@ -266,6 +288,9 @@ internal class PickupAntiWallHackModule : PluginModule
 
             if (_boundsFrame != frame)
             {
+                if (_boundsFrame == -1)
+                    _collider = pickup.GetComponentInChildren<Collider>();
+
                 _bounds = _collider != null && _collider.enabled ? _collider.bounds : new Bounds(pickup.Position, Vector3.one * 0.1f);
                 _boundsFrame = frame;
             }
