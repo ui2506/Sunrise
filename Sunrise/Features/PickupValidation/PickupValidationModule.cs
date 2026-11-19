@@ -14,18 +14,23 @@ internal class PickupValidationModule : PluginModule
 
         Handlers.Scp914Events.ProcessingInventoryItem += OnScp914ProcessingInventoryItem;
         Handlers.PlayerEvents.SearchingPickup += PickupValidator.OnSearchingPickup;
+        Handlers.PlayerEvents.PickingUpItem += PickupValidator.OnPickingUp;
+        Handlers.PlayerEvents.PickingUpAmmo += PickupValidator.OnPickingUp;
+        Handlers.PlayerEvents.PickingUpArmor += PickupValidator.OnPickingUp;
+        Handlers.PlayerEvents.PickingUpScp330 += PickupValidator.OnPickingUp;
     }
 
     protected override void OnDisabled()
     {
         Handlers.Scp914Events.ProcessingInventoryItem -= OnScp914ProcessingInventoryItem;
         Handlers.PlayerEvents.SearchingPickup -= PickupValidator.OnSearchingPickup;
+        Handlers.PlayerEvents.PickingUpItem -= PickupValidator.OnPickingUp;
+        Handlers.PlayerEvents.PickingUpAmmo -= PickupValidator.OnPickingUp;
+        Handlers.PlayerEvents.PickingUpArmor -= PickupValidator.OnPickingUp;
+        Handlers.PlayerEvents.PickingUpScp330 -= PickupValidator.OnPickingUp;
     }
 
-    protected override void OnReset()
-    {
-        PickupValidator.TemporaryPlayerBypass.Clear();
-    }
+    protected override void OnReset() => PickupValidator.Clear();
 
     static void OnScp914ProcessingInventoryItem(Scp914ProcessingInventoryItemEventArgs ev)
     {

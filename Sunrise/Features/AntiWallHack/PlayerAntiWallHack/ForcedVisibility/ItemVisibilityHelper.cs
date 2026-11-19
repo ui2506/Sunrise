@@ -3,7 +3,7 @@ using InventorySystem.Items.MicroHID.Modules;
 using LabApi.Features.Wrappers;
 using Scp268 = InventorySystem.Items.Usables.Scp268;
 
-namespace Sunrise.Features.AntiWallhack.ForcedVisibility;
+namespace Sunrise.Features.AntiWallHack.PlayerAntiWallHack.ForcedVisibility;
 
 internal static class ItemVisibilityHelper
 {

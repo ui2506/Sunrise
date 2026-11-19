@@ -1,7 +1,7 @@
 using LabApi.Features.Wrappers;
 using PlayerRoles.PlayableScps;
 
-namespace Sunrise.Features.AntiWallhack;
+namespace Sunrise.Features.AntiWallHack.PlayerAntiWallHack;
 
 /*
 With 30 players randomly distributed in 30*30 area (approximate worst case) consumes around 130ms per 10 seconds
