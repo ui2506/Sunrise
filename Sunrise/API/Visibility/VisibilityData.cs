@@ -1,6 +1,7 @@
 using LabApi.Features.Wrappers;
 using System;
 using MapGeneration;
+using PlayerRoles.PlayableScps;
 using Sunrise.API.Visibility.Generation;
 
 namespace Sunrise.API.Visibility;
@@ -8,6 +9,8 @@ namespace Sunrise.API.Visibility;
 public class VisibilityData
 {
     static readonly Dictionary<Vector3Int, VisibilityData> Cache = [];
+    static readonly Dictionary<Vector3, Room?> Rooms = [];
+    static int roomFrame = -1;
 
     VisibilityData(Room room)
     {
@@ -15,13 +18,30 @@ public class VisibilityData
         InitializeVisibilityData();
     }
 
-    internal static void Clear() => Cache.Clear();
+    internal static void Clear()
+    {
+        Cache.Clear();
+        Rooms.Clear();
+    }
 
     public Room TargetRoom { get; }
     public HashSet<Vector3Int> VisibleCoords { get; } = [];
 
-    public bool IsVisible(Player player) => player is not { IsDestroyed: false } || IsVisible(Room.GetRoomAtPosition(player.Position));
+    public bool IsVisible(Player player) => player is not { IsDestroyed: false } || IsVisible(GetRoom(player.Position));
     public bool IsVisible(Room? room) => room?.Base is not RoomIdentifier identifier || VisibleCoords.Contains(identifier.MainCoords);
+
+    internal static bool InRange(Vector3 observerPosition, float sqrDistance) => sqrDistance <= 30f * 30f
+        || (sqrDistance <= 50f * 50f && GetRoom(observerPosition)?.Zone == FacilityZone.Surface);
+
+    internal static int GetVisionMask(Room? observer, Room? target)
+    {
+        int mask = VisionInformation.VisionLayerMask;
+
+        if (observer != null && target != null && (observer == target || observer.ConnectedRooms.Contains(target.Base)))
+            mask &= ~(int)Mask.Doors;
+
+        return mask;
+    }
 
     void InitializeVisibilityData()
     {
@@ -39,12 +59,27 @@ public class VisibilityData
 
     public static VisibilityData? Get(Vector3 position, bool allowDebug = true)
     {
-        Room? room = Room.GetRoomAtPosition(position);
+        Room? room = GetRoom(position);
 
         if (room is null)
             return null;
 
         return Get(room, allowDebug);
+    }
+
+    internal static Room? GetRoom(Vector3 position)
+    {
+        int frame = Time.frameCount;
+        if (roomFrame != frame)
+        {
+            Rooms.Clear();
+            roomFrame = frame;
+        }
+
+        if (!Rooms.TryGetValue(position, out Room? room))
+            Rooms[position] = room = Room.GetRoomAtPosition(position);
+
+        return room;
     }
 
     public static VisibilityData Get(Room room, bool allowDebug = true)

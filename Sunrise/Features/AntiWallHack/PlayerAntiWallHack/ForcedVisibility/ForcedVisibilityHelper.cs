@@ -10,7 +10,7 @@ using PlayerRoles.PlayableScps.Scp939.Mimicry;
 using PlayerRoles.FirstPersonControl;
 using PlayerRoles.PlayableScps.Scp096;
 
-namespace Sunrise.Features.AntiWallhack.ForcedVisibility;
+namespace Sunrise.Features.AntiWallHack.PlayerAntiWallHack.ForcedVisibility;
 
 internal static class ForcedVisibilityHelper
 {
@@ -98,7 +98,7 @@ internal static class ForcedVisibilityHelper
     {
         FirstPersonMovementModule movementModule = fpcRole.FpcModule;
 
-        isJumping = movementModule.Motor.JumpController.IsJumping || (AntiWallhackModule.LandingTimes.TryGetValue(Player.Get(movementModule.Hub), out float landingTime) && Time.time - landingTime < 0.5f);
+        isJumping = movementModule.Motor.JumpController.IsJumping || (PlayerAntiWallHackModule.LandingTimes.TryGetValue(Player.Get(movementModule.Hub), out float landingTime) && Time.time - landingTime < 0.5f);
 
         return movementModule.CurrentMovementState switch
         {
@@ -114,7 +114,6 @@ internal static class ForcedVisibilityHelper
         Sneaking,
         Walking,
         Sprinting,
-
         Stationary,
     }
 }

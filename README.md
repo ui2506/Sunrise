@@ -51,6 +51,12 @@ It yields almost perfect results, but can be computationally expensive.
 If it's the case for you, it is always possible to disable it in the configuration file.
 It is recommended to use `benchmark` option in the config to test the performance.
 
+### Pickup Anti-Wallhack
+
+The `PickupAntiWallhack` option hides pickups using room visibility and raycasts. Hidden pickups are excluded from the client's network observers, so their spawn and subsequent observer-based updates are withheld until they become visible. They are hidden again when visibility is lost.
+
+Checks run every 0.1 seconds, with visible results cached for 0.5 seconds. Spectators use their target's visibility; the death camera uses a 30-meter radius. Overwatch and thrown projectiles are excluded. Custom maps need correct collision layers, just like player raycast visibility.
+
 ## 📦 Pickup Validation
 
 > Prevents item pickups through walls.

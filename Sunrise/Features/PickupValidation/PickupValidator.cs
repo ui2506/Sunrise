@@ -1,6 +1,10 @@
 using InventorySystem.Items.Pickups;
+using LabApi.Events.Arguments.Interfaces;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Features.Wrappers;
+using LiteNetLib;
+using Mirror;
+using Mirror.LiteNetLib4Mirror;
 using Sunrise.API.Backtracking;
 
 namespace Sunrise.Features.PickupValidation;
@@ -8,29 +12,62 @@ namespace Sunrise.Features.PickupValidation;
 internal static class PickupValidator
 {
     internal static readonly Dictionary<Player, float> TemporaryPlayerBypass = [];
+    static readonly Dictionary<Player, (Pickup Pickup, float FinishTime)> Searches = [];
 
     internal static void OnSearchingPickup(PlayerSearchingPickupEventArgs ev)
     {
-        if (!ev.IsAllowed || ev.Player.IsNoclipEnabled)
+        if (!ev.IsAllowed)
             return;
 
         if (TemporaryPlayerBypass.TryGetValue(ev.Player, out float time) && time > Time.time)
             return;
 
-        if (ev.Pickup.Transform.localScale != Vector3.one)
-            return;
+        Searches.Remove(ev.Player);
 
-        //foreach (Elevator elevator in Elevator.List)
-        //{
-        //    if (elevator.WorldSpaceRelativeBounds.Contains(ev.Player.Position) && (uint)(elevator.Base.CurSequence - 2) <= 1u)
-        //        return;
-        //}
-
-        if (ev.Pickup is BodyArmorPickup)
-            return;
-
-        if (!CanPickUp(ev.Player, ev.Pickup))
+        if (ev.Pickup.Transform.localScale == Vector3.one && ev.Pickup is not BodyArmorPickup && !CanPickUp(ev.Player, ev.Pickup))
+        {
             ev.IsAllowed = false;
+            return;
+        }
+
+        float duration = ev.Pickup.Base.SearchTimeForPlayer(ev.Player.ReferenceHub);
+
+        Log.Info(duration);
+
+        if (duration <= 0f)
+        {
+            ev.IsAllowed = false;
+            return;
+        }
+
+        Searches[ev.Player] = (ev.Pickup, Time.time + duration);
+    }
+
+    internal static void OnPickingUp<T>(T ev) where T : IPlayerEvent, IPickupEvent, ICancellableEvent
+    {
+        #pragma warning disable CS8604
+
+        if (!Searches.TryGetValue(ev.Player, out var search) || search.Pickup != ev.Pickup)
+            return;
+
+        #pragma warning restore CS8604
+
+        float pickedUpTime = search.FinishTime - Time.time;
+
+        double latency = LiteNetLib4MirrorServer.Peers.TryGetValue(ev.Player.ConnectionToClient.connectionId, out NetPeer peer)
+            ? peer.Ping * 0.001 * ev.Player.ReferenceHub.searchCoordinator.serverDelayThreshold
+            : 0d;
+
+        if (pickedUpTime - latency > 0.01f)
+            ev.IsAllowed = false;
+
+        Searches.Remove(ev.Player);
+    }
+
+    internal static void Clear()
+    {
+        Searches.Clear();
+        TemporaryPlayerBypass.Clear();
     }
 
     static bool CanPickUp(Player player, Pickup pickup)
