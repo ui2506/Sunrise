@@ -1,5 +1,5 @@
 using LabApi.Features.Wrappers;
-using PlayerRoles.PlayableScps;
+using Sunrise.API.Visibility;
 
 namespace Sunrise.Features.AntiWallHack.PlayerAntiWallHack;
 
@@ -43,21 +43,22 @@ internal static class RaycastVisibilityChecker
             return value;
 
         Benchmark.Start();
-        bool result = CheckAnyVisibility(playerA, playerB);
+        int mask = VisibilityData.GetVisionMask(VisibilityData.GetRoom(playerA.Position), VisibilityData.GetRoom(playerB.Position));
+        bool result = CheckDirectionalVisibility(playerA, playerB, mask) || CheckDirectionalVisibility(playerB, playerA, mask);
+        
         RaycastVisibilityCache.Save(key, result);
+
         Benchmark.Increment();
         Benchmark.Stop();
         return result;
     }
 
-    static bool CheckAnyVisibility(Player playerA, Player playerB) => CheckDirectionalVisibility(playerA, playerB) || CheckDirectionalVisibility(playerB, playerA);
-
-    static bool CheckDirectionalVisibility(Player observer, Player target)
+    static bool CheckDirectionalVisibility(Player observer, Player target, int mask)
     {
         Vector3 observerPosition = observer.Camera.position;
         Vector3 targetPosition = target.Camera.position;
 
-        if (!Physics.Linecast(observerPosition, targetPosition, VisionInformation.VisionLayerMask))
+        if (!Physics.Linecast(observerPosition, targetPosition, mask))
         {
             Debug.DrawLine(observerPosition, targetPosition, Colors.Blue * 50, 0.11f);
             return true;
@@ -71,7 +72,7 @@ internal static class RaycastVisibilityChecker
 
         foreach (Vector3 point in VisibilityPointsBuffer)
         {
-            if (Physics.Linecast(observerPosition, point, VisionInformation.VisionLayerMask))
+            if (Physics.Linecast(observerPosition, point, mask))
             {
                 Debug.DrawPoint(point, Colors.Orange * 50, 0.11f);
                 continue;
@@ -87,6 +88,7 @@ internal static class RaycastVisibilityChecker
     static void SetVisibilityPoints(Vector3 position, Vector3 right, Vector3 up, Player player)
     {
         float rightForecastValue = Vector3.Dot(player.Velocity * Config.Instance.AccountedLatencySeconds, right);
+
         Vector3 rightForecast = rightForecastValue * right; // Project forecast on the 'right' vector
 
         for (var i = 0; i < VisibilityPointOffsets.Length; i++)

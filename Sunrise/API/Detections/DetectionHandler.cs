@@ -18,9 +18,11 @@ internal class DetectionHandler : PluginModule
 
     static void OnLeft(PlayerLeftEventArgs ev) => ReportCoolDown.Remove(ev.Player);
 
+    internal static bool CanReport(Player player) => !ReportCoolDown.TryGetValue(player, out float nextReport) || Time.time >= nextReport;
+
     internal static void Handle(Player player, string detection, string details, ActionType action)
     {
-        if (ReportCoolDown.TryGetValue(player, out float nextReport) && Time.time < nextReport)
+        if (!CanReport(player))
             return;
 
         ReportCoolDown[player] = Time.time + 10f;

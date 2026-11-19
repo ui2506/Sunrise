@@ -28,12 +28,15 @@ public class BacktrackHistory(Player player)
         if (Entries.IsEmpty)
             return;
 
-        float speed = player.Velocity.magnitude;
-        Vector3 direction = player.Velocity / speed;
+        Vector3 velocity = player.Velocity;
+
+        float speed = velocity.magnitude;
         float forecastDistance = speed * Config.Instance.AccountedLatencySeconds;
 
         if (forecastDistance < AcceptedDistance)
             return;
+
+        Vector3 direction = velocity / speed;
 
         if (forecastDistance > 0.4f && Physics.Raycast(player.Position, direction, out RaycastHit hit, forecastDistance, (int)Mask.PlayerObstacles))
             forecastDistance = hit.distance - 0.4f;
@@ -59,15 +62,14 @@ public class BacktrackHistory(Player player)
         var minSqrDistance = float.MaxValue;
         var minAngle = float.MaxValue;
 
-        using IEnumerator<BacktrackEntry> enumerator = Entries.GetEnumerator(); // Entries are ordered from newest to oldest
-        if (!enumerator.MoveNext())
+        if (Entries.Size < 2)
             return default;
 
-        BacktrackEntry newest = enumerator.Current;
+        BacktrackEntry newest = Entries.Front();
 
-        while (enumerator.MoveNext())
+        for (int i = 1; i < Entries.Size; i++)
         {
-            BacktrackEntry oldest = enumerator.Current;
+            BacktrackEntry oldest = Entries[i];
 
             Debug.DrawLine(oldest.Position, newest.Position, Colors.Blue * 50);
             Debug.DrawLine(newest.Position, newest.Position + newest.Rotation * Vector3.forward, Colors.Blue * 50);
@@ -129,6 +131,7 @@ public class BacktrackHistory(Player player)
         {
             minAngle = angle;
             best.Rotation = Quaternion.RotateTowards(newest.Rotation, claimed.Rotation, 1);
+            
             return true;
         }
 

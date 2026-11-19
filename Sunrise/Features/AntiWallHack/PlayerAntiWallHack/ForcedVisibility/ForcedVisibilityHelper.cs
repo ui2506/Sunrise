@@ -114,7 +114,6 @@ internal static class ForcedVisibilityHelper
         Sneaking,
         Walking,
         Sprinting,
-
         Stationary,
     }
 }

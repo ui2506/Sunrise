@@ -96,38 +96,37 @@ internal class AntiBigStepModule : PluginModule
 
         Player player = Player.Get(hub);
 
-        Room.TryGetRoomAtPosition(module.Position, out Room? oldPosRoom);
-        Room.TryGetRoomAtPosition(position, out Room? newPosRoom);
-
         int ping = LiteNetLib4MirrorServer.GetPing(player.Connection.connectionId) * 2;
+        string details = string.Empty;
+        bool confirmed = serverDifference > 1f && module.CharController.stepOffset > 0.225f && ping < 200;
+        bool warn = !confirmed && now >= data.NextWarning;
 
-        string details = $"Old position: {module.Position} Room: {oldPosRoom?.Name ?? MapGeneration.RoomName.Unnamed} {oldPosRoom?.Transform.InverseTransformPoint(module.Position) ?? Vector3.zero}\nNew position: {position} Room: {newPosRoom?.Name ?? MapGeneration.RoomName.Unnamed} {newPosRoom?.Transform.InverseTransformPoint(position) ?? Vector3.zero}\nrise: {rise:F2}, interval: {elapsed:F3}s, server difference: {serverDifference:F2}, step offset: {module.CharController.stepOffset:F3}, ping {ping}.";
-
-        if (serverDifference > 1f && module.CharController.stepOffset > 0.225f && ping < 200)
+        if (warn || DetectionHandler.CanReport(player))
         {
-            DetectionHandler.Handle(player, "BigStep", details, Config.Instance.DetectAction);
-        }
-        else
-        {
-            DetectionHandler.Handle(player, "Possible BigStep", details, ActionType.None);
+            Room.TryGetRoomAtPosition(module.Position, out Room? oldPosRoom);
+            Room.TryGetRoomAtPosition(position, out Room? newPosRoom);
 
-            Vector3 serverPosition = module.Position;
-            player.Position = serverPosition;
+            details = $"Old position: {module.Position} Room: {oldPosRoom?.Name ?? MapGeneration.RoomName.Unnamed} {oldPosRoom?.Transform.InverseTransformPoint(module.Position) ?? Vector3.zero}\nNew position: {position} Room: {newPosRoom?.Name ?? MapGeneration.RoomName.Unnamed} {newPosRoom?.Transform.InverseTransformPoint(position) ?? Vector3.zero}\nrise: {rise:F2}, interval: {elapsed:F3}s, server difference: {serverDifference:F2}, step offset: {module.CharController.stepOffset:F3}, ping {ping}.";
 
-            data.Position = serverPosition;
-            data.HasPosition = true;
-            data.IgnoreUntil = 0f;
-
-            if (now >= data.NextWarning)
-            {
-                data.NextWarning = now + 1f;
-                Log.Warn($"[AntiBigStep] Possible BigStep detected: Player {player.Nickname} ({player.UserId})\n{details}");
-            }
-
-            return false;
+            DetectionHandler.Handle(player, confirmed ? "BigStep" : "Possible BigStep", details, confirmed ? Config.Instance.DetectAction : ActionType.None);
         }
 
-        return true;
+        if (confirmed)
+            return true;
+
+        Vector3 serverPosition = module.Position;
+        player.Position = serverPosition;
+        data.Position = serverPosition;
+        data.HasPosition = true;
+        data.IgnoreUntil = 0f;
+
+        if (warn)
+        {
+            data.NextWarning = now + 1f;
+            Log.Warn($"[AntiBigStep] Possible BigStep detected: Player {player.Nickname} ({player.UserId})\n{details}");
+        }
+
+        return false;
     }
 
     internal static bool IsSuspicious(float rise, float elapsed, float upwardSpeed, float serverDifference)

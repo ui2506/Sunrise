@@ -20,6 +20,8 @@ internal class PlayerAntiWallHackModule : PluginModule
     internal static readonly Dictionary<Player, float> LandingTimes = [];
 
     static readonly Dictionary<Player, List<Player>> VisiblePlayers = [];
+    static readonly Dictionary<Player, float> VisibilityRanges = [];
+    static int rangeFrame = -1;
 
     static readonly AutoBenchmark Benchmark = new("Anti Wallhack (without raycasts)");
 
@@ -53,6 +55,7 @@ internal class PlayerAntiWallHackModule : PluginModule
     {
         LandingTimes.Clear();
         VisiblePlayers.Clear();
+        VisibilityRanges.Clear();
         RaycastVisibilityCache.Clear();
     }
 
@@ -74,9 +77,6 @@ internal class PlayerAntiWallHackModule : PluginModule
     {
         if (!Config.Instance.SpectatorAntiWallhack || ev.Player.Role != RoleTypeId.Spectator || ev.NewTarget == ev.OldTarget)
             return;
-
-        if (ev.NewTarget != null)
-            RaycastVisibilityCache.Remove(ev.Player.PlayerId);
 
         ev.Player.Connection.Send(new FpcPositionMessage(ev.Player.ReferenceHub));
     }
@@ -120,10 +120,10 @@ internal class PlayerAntiWallHackModule : PluginModule
         {
             Benchmark.Start();
 
-            if (IsExceptionalCase(ev.Player, ev.Target))
+            if (IsExceptionalObserver(ev.Player, ev.Target))
                 return;
 
-            float forcedVisibility = ForcedVisibilityHelper.GetForcedVisibility(ev.Target);
+            float forcedVisibility = GetVisibilityRange(ev.Target);
 
             if ((ev.Player.Position - ev.Target.Position).sqrMagnitude < forcedVisibility * forcedVisibility)
                 return;
@@ -152,6 +152,9 @@ internal class PlayerAntiWallHackModule : PluginModule
 
     static void SaveVisibility(Player observer, Player target, bool visible)
     {
+        if (!Config.Instance.SpectatorAntiWallhack)
+            return;
+
         if (!VisiblePlayers.TryGetValue(observer, out List<Player> visiblePlayers))
         {
             if (!visible)
@@ -168,23 +171,37 @@ internal class PlayerAntiWallHackModule : PluginModule
 
     static void RemoveVisibility(Player player)
     {
+        VisibilityRanges.Remove(player);
         VisiblePlayers.Remove(player);
 
         foreach (List<Player> visiblePlayers in VisiblePlayers.Values)
             visiblePlayers.Remove(player);
     }
 
-    static bool IsExceptionalCase(Player observer, Player target)
+    static float GetVisibilityRange(Player target)
     {
-        // Night vision scopes do not count as emitting light.
-        if (target.CurrentItem is FirearmItem firearm)
-        {
-            if (firearm.FlashlightEnabled)
-                return true;
-        }
-        else if (target.CurrentItem?.Base is ILightEmittingItem { IsEmittingLight: true })
-            return true;
+        int frame = Time.frameCount;
 
+        if (rangeFrame != frame)
+        {
+            VisibilityRanges.Clear();
+            rangeFrame = frame;
+        }
+
+        if (VisibilityRanges.TryGetValue(target, out float range))
+            return range;
+
+        Item? item = target.CurrentItem;
+        // Night vision scopes do not count as emitting light.
+        bool emitsLight = item is FirearmItem firearm ? firearm.FlashlightEnabled : item?.Base is ILightEmittingItem { IsEmittingLight: true };
+        range = emitsLight ? float.PositiveInfinity : ForcedVisibilityHelper.GetForcedVisibility(target);
+        VisibilityRanges[target] = range;
+
+        return range;
+    }
+
+    static bool IsExceptionalObserver(Player observer, Player target)
+    {
         if (observer.RoleBase is Scp049Role scp049 && scp049.SubroutineModule.TryGetSubroutine(out Scp049SenseAbility sense)
             && sense.HasTarget && sense.Target == target.ReferenceHub)
             return true;
