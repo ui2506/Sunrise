@@ -18,11 +18,15 @@ internal class AntiDoorManipulatorModule : PluginModule
         }
 
         Handlers.PlayerEvents.InteractingDoor += OnInteractingDoor;
+
+        base.OnEnabled();
     }
 
     protected override void OnDisabled()
     {
         Handlers.PlayerEvents.InteractingDoor -= OnInteractingDoor;
+
+        base.OnDisabled();
     }
 
     static void OnInteractingDoor(PlayerInteractingDoorEventArgs ev)

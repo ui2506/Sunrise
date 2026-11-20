@@ -41,6 +41,8 @@ internal class PlayerAntiWallHackModule : PluginModule
 
         if (Config.Instance.SpectatorAntiWallhack)
             Handlers.PlayerEvents.ChangedSpectator += OnChangedSpectator;
+
+        base.OnEnabled();
     }
 
     protected override void OnDisabled()
@@ -50,6 +52,8 @@ internal class PlayerAntiWallHackModule : PluginModule
         Handlers.PlayerEvents.Left -= OnPlayerLeft;
         Handlers.PlayerEvents.ChangedRole -= OnChangedRole;
         Handlers.PlayerEvents.ChangedSpectator -= OnChangedSpectator;
+
+        base.OnDisabled();
     }
 
     protected override void OnReset()

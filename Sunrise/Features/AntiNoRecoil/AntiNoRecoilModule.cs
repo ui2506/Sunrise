@@ -29,6 +29,8 @@ internal class AntiNoRecoilModule : PluginModule
         Handlers.PlayerEvents.ShotWeapon += OnShot;
         Handlers.PlayerEvents.Left += OnLeft;
         Handlers.PlayerEvents.ChangedRole += OnChangedRole;
+
+        base.OnEnabled();
     }
 
     protected override void OnDisabled()
@@ -36,6 +38,8 @@ internal class AntiNoRecoilModule : PluginModule
         Handlers.PlayerEvents.ShotWeapon -= OnShot;
         Handlers.PlayerEvents.Left -= OnLeft;
         Handlers.PlayerEvents.ChangedRole -= OnChangedRole;
+
+        base.OnDisabled();
     }
 
     protected override void OnReset() => Bursts.Clear();

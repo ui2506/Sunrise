@@ -3,7 +3,6 @@ using LabApi.Events.Arguments.Interfaces;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Features.Wrappers;
 using LiteNetLib;
-using Mirror;
 using Mirror.LiteNetLib4Mirror;
 using Sunrise.API.Backtracking;
 using Sunrise.API.Detections;

@@ -24,12 +24,16 @@ internal class AntiBigStepModule : PluginModule
 
         Handlers.PlayerEvents.ChangedRole += OnChangedRole;
         Handlers.PlayerEvents.Left += OnLeft;
+
+        base.OnEnabled();
     }
 
     protected override void OnDisabled()
     {
         Handlers.PlayerEvents.ChangedRole -= OnChangedRole;
         Handlers.PlayerEvents.Left -= OnLeft;
+
+        base.OnDisabled();
     }
 
     protected override void OnReset() => Players.Clear();

@@ -26,6 +26,8 @@ internal class BacktrackingModule : PluginModule
         Handlers.ServerEvents.RoundRestarted += OnReset;
         Handlers.PlayerEvents.Left += OnPlayerLeft;
         Handlers.PlayerEvents.ChangedRole += OnChangedRole;
+
+        base.OnEnabled();
     }
 
     protected override void OnDisabled()
@@ -33,6 +35,8 @@ internal class BacktrackingModule : PluginModule
         Handlers.ServerEvents.RoundRestarted -= OnReset;
         Handlers.PlayerEvents.Left -= OnPlayerLeft;
         Handlers.PlayerEvents.ChangedRole -= OnChangedRole;
+
+        base.OnDisabled();
     }
 
     static void OnPlayerLeft(PlayerLeftEventArgs ev) => BacktrackHistory.Dictionary.Remove(ev.Player.ReferenceHub);

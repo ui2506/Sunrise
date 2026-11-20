@@ -10,11 +10,15 @@ internal class VisibilityModule : PluginModule
     protected override void OnEnabled()
     {
         SeedSynchronizer.OnGenerationStage += OnMapGenerationStage;
+
+        base.OnEnabled();
     }
 
     protected override void OnDisabled()
     {
         SeedSynchronizer.OnGenerationStage -= OnMapGenerationStage;
+
+        base.OnDisabled();
     }
 
     protected override void OnReset()

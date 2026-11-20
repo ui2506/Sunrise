@@ -12,8 +12,20 @@ internal class DetectionHandler : PluginModule
     static readonly Dictionary<Player, float> ReportCoolDown = [];
     static readonly HttpClient Client = new() { Timeout = TimeSpan.FromSeconds(10) };
 
-    protected override void OnEnabled() => Handlers.PlayerEvents.Left += OnLeft;
-    protected override void OnDisabled() => Handlers.PlayerEvents.Left -= OnLeft;
+    protected override void OnEnabled()
+    {
+        Handlers.PlayerEvents.Left += OnLeft;
+
+        base.OnEnabled();
+    }
+
+    protected override void OnDisabled()
+    {
+        Handlers.PlayerEvents.Left -= OnLeft;
+
+        base.OnDisabled();
+    }
+
     protected override void OnReset() => ReportCoolDown.Clear();
 
     static void OnLeft(PlayerLeftEventArgs ev) => ReportCoolDown.Remove(ev.Player);

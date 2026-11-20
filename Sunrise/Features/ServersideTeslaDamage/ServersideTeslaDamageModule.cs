@@ -21,12 +21,16 @@ internal class ServersideTeslaDamageModule : PluginModule
 
         TeslaGate.OnBursted += OnTeslaGateBursted;
         Handlers.PlayerEvents.Hurt += OnPlayerHurt;
+
+        base.OnEnabled();
     }
 
     protected override void OnDisabled()
     {
         TeslaGate.OnBursted -= OnTeslaGateBursted;
         Handlers.PlayerEvents.Hurt -= OnPlayerHurt;
+
+        base.OnDisabled();
     }
 
     protected override void OnReset()
