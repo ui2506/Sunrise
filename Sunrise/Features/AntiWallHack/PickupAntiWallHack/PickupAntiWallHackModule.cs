@@ -39,6 +39,8 @@ internal class PickupAntiWallHackModule : PluginModule
         Handlers.PlayerEvents.Left += OnLeft;
         Handlers.PlayerEvents.ChangedRole += OnChangedRole;
         Handlers.PlayerEvents.ChangedSpectator += OnChangedSpectator;
+
+        base.OnEnabled();
     }
 
     protected override void OnDisabled()
@@ -48,6 +50,8 @@ internal class PickupAntiWallHackModule : PluginModule
         Handlers.PlayerEvents.Left -= OnLeft;
         Handlers.PlayerEvents.ChangedRole -= OnChangedRole;
         Handlers.PlayerEvents.ChangedSpectator -= OnChangedSpectator;
+
+        base.OnDisabled();
     }
 
     protected override void OnReset()

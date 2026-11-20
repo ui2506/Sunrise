@@ -3,9 +3,9 @@ using LabApi.Events.Arguments.Interfaces;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Features.Wrappers;
 using LiteNetLib;
-using Mirror;
 using Mirror.LiteNetLib4Mirror;
 using Sunrise.API.Backtracking;
+using Sunrise.API.Detections;
 
 namespace Sunrise.Features.PickupValidation;
 
@@ -56,8 +56,13 @@ internal static class PickupValidator
             ? peer.Ping * 0.001 * ev.Player.ReferenceHub.searchCoordinator.serverDelayThreshold
             : 0d;
 
+        string details = $"Pickup time: {pickedUpTime}\nPickup latency: {latency}\nPickup and latency: {(pickedUpTime - latency):F2}";
+
         if (pickedUpTime - latency > 0.01f)
+        {
+            Config.Instance.FastPickupDetectConfig.Handle(ev.Player, "FastPickup", details, ActionType.None);
             ev.IsAllowed = false;
+        }
 
         Searches.Remove(ev.Player);
     }

@@ -18,6 +18,8 @@ internal class PickupValidationModule : PluginModule
         Handlers.PlayerEvents.PickingUpAmmo += PickupValidator.OnPickingUp;
         Handlers.PlayerEvents.PickingUpArmor += PickupValidator.OnPickingUp;
         Handlers.PlayerEvents.PickingUpScp330 += PickupValidator.OnPickingUp;
+
+        base.OnEnabled();
     }
 
     protected override void OnDisabled()
@@ -28,6 +30,8 @@ internal class PickupValidationModule : PluginModule
         Handlers.PlayerEvents.PickingUpAmmo -= PickupValidator.OnPickingUp;
         Handlers.PlayerEvents.PickingUpArmor -= PickupValidator.OnPickingUp;
         Handlers.PlayerEvents.PickingUpScp330 -= PickupValidator.OnPickingUp;
+
+        base.OnDisabled();
     }
 
     protected override void OnReset() => PickupValidator.Clear();

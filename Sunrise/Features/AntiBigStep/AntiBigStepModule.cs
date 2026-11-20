@@ -24,12 +24,16 @@ internal class AntiBigStepModule : PluginModule
 
         Handlers.PlayerEvents.ChangedRole += OnChangedRole;
         Handlers.PlayerEvents.Left += OnLeft;
+
+        base.OnEnabled();
     }
 
     protected override void OnDisabled()
     {
         Handlers.PlayerEvents.ChangedRole -= OnChangedRole;
         Handlers.PlayerEvents.Left -= OnLeft;
+
+        base.OnDisabled();
     }
 
     protected override void OnReset() => Players.Clear();
@@ -108,7 +112,7 @@ internal class AntiBigStepModule : PluginModule
 
             details = $"Old position: {module.Position} Room: {oldPosRoom?.Name ?? MapGeneration.RoomName.Unnamed} {oldPosRoom?.Transform.InverseTransformPoint(module.Position) ?? Vector3.zero}\nNew position: {position} Room: {newPosRoom?.Name ?? MapGeneration.RoomName.Unnamed} {newPosRoom?.Transform.InverseTransformPoint(position) ?? Vector3.zero}\nrise: {rise:F2}, interval: {elapsed:F3}s, server difference: {serverDifference:F2}, step offset: {module.CharController.stepOffset:F3}, ping {ping}.";
 
-            DetectionHandler.Handle(player, confirmed ? "BigStep" : "Possible BigStep", details, confirmed ? Config.Instance.DetectAction : ActionType.None);
+            Config.Instance.AntiBigStepDetectConfig.Handle(player, confirmed ? "BigStep" : "Possible BigStep", details, confirmed ? Config.Instance.AntiBigStepDetectConfig.DetectAction : ActionType.None);
         }
 
         if (confirmed)

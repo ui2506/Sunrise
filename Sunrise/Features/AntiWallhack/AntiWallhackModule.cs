@@ -29,6 +29,8 @@ internal class AntiWallHackModule : PluginModule
         Handlers.PlayerEvents.ChangingRole += OnChangingRole;
         Handlers.PlayerEvents.ChangedRole += OnChangedRole;
         Handlers.PlayerEvents.ChangedSpectator += OnChangedSpectator;
+
+        base.OnEnabled();
     }
 
     protected override void OnDisabled()
@@ -37,6 +39,8 @@ internal class AntiWallHackModule : PluginModule
         Handlers.PlayerEvents.ChangingRole -= OnChangingRole;
         Handlers.PlayerEvents.ChangedRole -= OnChangedRole;
         Handlers.PlayerEvents.ChangedSpectator -= OnChangedSpectator;
+
+        base.OnDisabled();
     }
 
     protected override void OnReset() => DeathPositions.Clear();

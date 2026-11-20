@@ -12,7 +12,7 @@ internal class BacktrackingModule : PluginModule
 {
     protected override void OnEnabled()
     {
-        if (!Config.Instance.ServersideBacktrack && !Config.Instance.PickupValidation && !Config.Instance.DoorInteractionValidation)
+        if (!Config.Instance.ServersideBacktrack && !Config.Instance.PickupValidation && !Config.Instance.DoorInteractionValidation && !Config.Instance.AntiNoRecoil)
             return;
 
         SunrisePlugin.Harmony.CreateClassProcessor(typeof(FpcMouseLookPatch)).Patch();
@@ -26,6 +26,8 @@ internal class BacktrackingModule : PluginModule
         Handlers.ServerEvents.RoundRestarted += OnReset;
         Handlers.PlayerEvents.Left += OnPlayerLeft;
         Handlers.PlayerEvents.ChangedRole += OnChangedRole;
+
+        base.OnEnabled();
     }
 
     protected override void OnDisabled()
@@ -33,6 +35,8 @@ internal class BacktrackingModule : PluginModule
         Handlers.ServerEvents.RoundRestarted -= OnReset;
         Handlers.PlayerEvents.Left -= OnPlayerLeft;
         Handlers.PlayerEvents.ChangedRole -= OnChangedRole;
+
+        base.OnDisabled();
     }
 
     static void OnPlayerLeft(PlayerLeftEventArgs ev) => BacktrackHistory.Dictionary.Remove(ev.Player.ReferenceHub);
