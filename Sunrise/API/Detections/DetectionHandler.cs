@@ -20,14 +20,14 @@ internal class DetectionHandler : PluginModule
 
     internal static bool CanReport(Player player) => !ReportCoolDown.TryGetValue(player, out float nextReport) || Time.time >= nextReport;
 
-    internal static void Handle(Player player, string detection, string details, ActionType action)
+    internal static void Handle(Player player, string detection, string details, ActionType action, DetectionConfig config)
     {
         if (!CanReport(player))
             return;
 
         ReportCoolDown[player] = Time.time + 10f;
 
-        string reason = Report(player, detection, details);
+        string reason = Report(player, detection, details, config);
 
         switch (action)
         {
@@ -38,13 +38,13 @@ internal class DetectionHandler : PluginModule
                 break;
 
             case ActionType.Ban:
-                if (Config.Instance.DetectBanDuration <= 0)
+                if (config.DetectBanDuration <= 0)
                 {
                     Log.Warn($"[DetectionHandler] DetectBanDuration must be between 1 and {uint.MaxValue} seconds. No punishment applied.");
                     break;
                 }
 
-                if (!player.Ban(reason, Config.Instance.DetectBanDuration))
+                if (!player.Ban(reason, config.DetectBanDuration))
                     Log.Warn($"[DetectionHandler] Ban was rejected for {player.UserId}.");
 
                 break;
@@ -57,17 +57,17 @@ internal class DetectionHandler : PluginModule
         }
     }
 
-    internal static string Report(Player player, string detection, string details)
+    internal static string Report(Player player, string detection, string details, DetectionConfig config)
     {
         string reason = $"[Sunrise] {detection} detected!";
         string report = $"{reason}\nPlayer [{player.PlayerId}] {player.Nickname} ({player.UserId})\n{details}";
 
         Log.Warn(report);
 
-        if (!string.IsNullOrWhiteSpace(Config.Instance.DetectWebhook))
-            _ = SendWebhook(Config.Instance.DetectWebhook, report);
+        if (!string.IsNullOrWhiteSpace(config.DetectWebhook))
+            _ = SendWebhook(config.DetectWebhook, report);
 
-        if (Config.Instance.DetectReport)
+        if (config.DetectReport)
             SendReport(player, $"{reason}\n{details}");
 
         return reason;

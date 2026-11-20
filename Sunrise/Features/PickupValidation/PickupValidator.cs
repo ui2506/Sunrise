@@ -6,6 +6,7 @@ using LiteNetLib;
 using Mirror;
 using Mirror.LiteNetLib4Mirror;
 using Sunrise.API.Backtracking;
+using Sunrise.API.Detections;
 
 namespace Sunrise.Features.PickupValidation;
 
@@ -56,13 +57,11 @@ internal static class PickupValidator
             ? peer.Ping * 0.001 * ev.Player.ReferenceHub.searchCoordinator.serverDelayThreshold
             : 0d;
 
-        Log.Debug($"Pickup time: {pickedUpTime}");
-        Log.Debug($"Pickup latency: {latency}");
-        Log.Debug($"Pickup and latency: {(pickedUpTime - latency):F2}");
+        string details = $"Pickup time: {pickedUpTime}\nPickup latency: {latency}\nPickup and latency: {(pickedUpTime - latency):F2}";
 
         if (pickedUpTime - latency > 0.01f)
         {
-            Log.Debug("Fast pickup detected!");
+            Config.Instance.FastPickupDetectConfig.Handle(ev.Player, "FastPickup", details, ActionType.None);
             ev.IsAllowed = false;
         }
 

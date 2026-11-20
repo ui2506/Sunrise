@@ -35,6 +35,13 @@ public sealed class Config
 
     [Description("Prevents picking up items through walls. Performance impact negligible.")]
     public bool PickupValidation { get; set; } = true;
+    public DetectionConfig FastPickupDetectConfig { get; set; } = new DetectionConfig
+    {
+        DetectAction = ActionType.Ban,
+        DetectBanDuration = 1577000000,
+        DetectReport = true,
+        DetectWebhook = ""
+    };
 
     [Description("Prevents silent-aim and spinbots. Actually improves performance.")]
     public bool ServersideBacktrack { get; set; } = true;
@@ -47,25 +54,23 @@ public sealed class Config
 
     [Description("Detects BigStep movement. Uses DetectAction for server differences greater than 1 unit.")]
     public bool AntiBigStep { get; set; } = true;
+    public DetectionConfig AntiBigStepDetectConfig { get; set; } = new DetectionConfig
+    {
+        DetectAction = ActionType.Ban,
+        DetectBanDuration = 1577000000,
+        DetectReport = true,
+        DetectWebhook = ""
+    };
 
     [Description("Reports sustained bursts with unusually little recoil after accounting for aim tracking.")]
     public bool AntiNoRecoil { get; set; } = true;
-
-    [Description("Detection action: None, Kick, Ban or Kill.")]
-    public ActionType DetectAction { get; set; } = ActionType.Ban;
-
-    [Description("Detection ban duration in seconds. Must be positive.")]
-    public long DetectBanDuration { get; set; } = 1577000000;
-
-    [Description("Send detection reports to local administrators through the base game report.")]
-    public bool DetectReport { get; set; } = true;
-
-    [Description("Discord webhook URL for detection reports (empty to disable).")]
-    public string DetectWebhook { get; set; } = "";
-
-    // TODO fix
-    /*[Description("Clutters ESP cheats with phantom pickups that disappear when players get close. Performance impact minimal.")]
-    public bool PhantomPickups { get; set; } = true;*/
+    public DetectionConfig AntiNoRecoilDetectConfig { get; set; } = new DetectionConfig
+    {
+        DetectAction = ActionType.Ban,
+        DetectBanDuration = 1577000000,
+        DetectReport = true,
+        DetectWebhook = ""
+    };
 
     #region Singleton
 

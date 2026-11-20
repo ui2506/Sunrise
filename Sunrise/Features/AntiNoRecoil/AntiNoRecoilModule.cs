@@ -142,7 +142,7 @@ internal class AntiNoRecoilModule : PluginModule
         if (Config.Instance.Debug)
             Debug.Log($"[AntiNoRecoil] Reporting {ev.Player.Nickname} for Possible NoRecoil.");
 
-        DetectionHandler.Report(ev.Player, "Possible NoRecoil", $"{ev.FirearmItem.Type}: {RequiredIntervals} low-deviation intervals within the last {EvidenceWindow}. Last peak: {deviation:F3} degrees, threshold: {tolerance:F3} degrees.");
+        Config.Instance.AntiNoRecoilDetectConfig.Handle(ev.Player, "Possible NoRecoil", $"{ev.FirearmItem.Type}: {RequiredIntervals} low-deviation intervals within the last {EvidenceWindow}. Last peak: {deviation:F3} degrees, threshold: {tolerance:F3} degrees.");
     }
 
     static float GetTolerance(FirearmItem firearm)
