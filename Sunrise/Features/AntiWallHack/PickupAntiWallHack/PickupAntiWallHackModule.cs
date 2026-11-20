@@ -270,15 +270,22 @@ internal class PickupAntiWallHackModule : PluginModule
     class VisibilityState(ItemPickupBase pickup)
     {
         public readonly Dictionary<Player, (int Expiration, bool Visible)> Players = [];
-        Collider? _collider;
+        Vector3? _position;
+        Quaternion _rotation;
+        Vector3 _scale;
+        FirearmWorldmodel? _model;
+        Renderer[]? _renderers;
+        Collider[]? _colliders;
+        uint _attachments;
+        float _nextDraw;
         int _roomFrame = -1;
         Room? _room;
-        int _boundsFrame = -1;
         Bounds _bounds;
 
         public Room? GetRoom()
         {
             int frame = Time.frameCount;
+
             if (_roomFrame != frame)
             {
                 _room = VisibilityData.GetRoom(pickup.Position);
@@ -290,18 +297,74 @@ internal class PickupAntiWallHackModule : PluginModule
 
         public Bounds GetBounds()
         {
-            int frame = Time.frameCount;
+            Vector3 position = pickup.Position;
+            Quaternion rotation = pickup.Rotation;
+            Vector3 scale = pickup.transform.lossyScale;
 
-            if (_boundsFrame != frame)
+            FirearmWorldmodel? model = (pickup as InventorySystem.Items.Firearms.FirearmPickup)?._worldmodelInstance;
+
+            uint attachments = model != null ? model.AttachmentCode : 0;
+
+            if (_position != position || _rotation != rotation || _scale != scale || _model != model || _attachments != attachments)
             {
-                if (_boundsFrame == -1)
-                    _collider = pickup.GetComponentInChildren<Collider>();
+                _position = position;
+                _rotation = rotation;
+                _scale = scale;
+                _model = model;
+                _attachments = attachments;
+                _bounds = CalculateBounds(model, position);
+                _bounds.extents += Vector3.one * 0.15f;
+            }
 
-                _bounds = _collider != null && _collider.enabled ? _collider.bounds : new Bounds(pickup.Position, Vector3.one * 0.1f);
-                _boundsFrame = frame;
+            if (Config.Instance.DebugPrimitives && Time.time >= _nextDraw)
+            {
+                _nextDraw = Time.time + UpdateInterval;
+
+                Vector3 center = _bounds.center;
+                Vector3 extents = _bounds.extents;
+
+                Debug.DrawPoint(center, Colors.Orange * 50, 0.11f);
+                Debug.DrawPoint(center + Vector3.up * extents.y, Colors.Orange * 50, 0.11f);
+                Debug.DrawPoint(center + Vector3.right * extents.x, Colors.Orange * 50, 0.11f);
+                Debug.DrawPoint(center - Vector3.right * extents.x, Colors.Orange * 50, 0.11f);
+                Debug.DrawPoint(center + Vector3.forward * extents.z, Colors.Orange * 50, 0.11f);
+                Debug.DrawPoint(center - Vector3.forward * extents.z, Colors.Orange * 50, 0.11f);
             }
 
             return _bounds;
+        }
+
+        Bounds CalculateBounds(FirearmWorldmodel? model, Vector3 position)
+        {
+            Bounds bounds = default;
+
+            foreach (Renderer renderer in model != null ? model.Renderers : (_renderers ??= pickup.GetComponentsInChildren<Renderer>(true)))
+            {
+                if (renderer != null && renderer is MeshRenderer or SkinnedMeshRenderer && renderer.enabled && renderer.gameObject.activeInHierarchy)
+                    Include(renderer.bounds);
+            }
+
+            if (bounds.size != Vector3.zero)
+                return bounds;
+
+            foreach (Collider collider in model != null && model.Colliders.Length > 0 ? model.Colliders : (_colliders ??= pickup.GetComponentsInChildren<Collider>(true)))
+            {
+                if (collider != null && collider.enabled && collider.gameObject.activeInHierarchy)
+                    Include(collider.bounds);
+            }
+
+            return bounds.size != Vector3.zero ? bounds : new Bounds(position, Vector3.one * 0.1f);
+
+            void Include(Bounds part)
+            {
+                if (part.size == Vector3.zero)
+                    return;
+
+                if (bounds.size == Vector3.zero)
+                    bounds = part;
+                else
+                    bounds.Encapsulate(part);
+            }
         }
     }
 }
