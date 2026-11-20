@@ -56,8 +56,15 @@ internal static class PickupValidator
             ? peer.Ping * 0.001 * ev.Player.ReferenceHub.searchCoordinator.serverDelayThreshold
             : 0d;
 
+        Log.Debug($"Pickup time: {pickedUpTime}");
+        Log.Debug($"Pickup latency: {latency}");
+        Log.Debug($"Pickup and latency: {(pickedUpTime - latency):F2}");
+
         if (pickedUpTime - latency > 0.01f)
+        {
+            Log.Debug("Fast pickup detected!");
             ev.IsAllowed = false;
+        }
 
         Searches.Remove(ev.Player);
     }

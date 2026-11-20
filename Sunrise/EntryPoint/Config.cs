@@ -48,6 +48,9 @@ public sealed class Config
     [Description("Detects BigStep movement. Uses DetectAction for server differences greater than 1 unit.")]
     public bool AntiBigStep { get; set; } = true;
 
+    [Description("Reports sustained bursts with unusually little recoil after accounting for aim tracking.")]
+    public bool AntiNoRecoil { get; set; } = true;
+
     [Description("Detection action: None, Kick, Ban or Kill.")]
     public ActionType DetectAction { get; set; } = ActionType.Ban;
 

@@ -47,6 +47,7 @@ public class BacktrackHistory(Player player)
 
         BacktrackEntry forecastEntry = new(forecastPosition, Entries.Front().Rotation)
         {
+            IsForecast = true,
             Timestamp = Time.time + Config.Instance.AccountedLatencySeconds,
         };
 

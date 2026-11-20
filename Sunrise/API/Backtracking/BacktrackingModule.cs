@@ -12,7 +12,7 @@ internal class BacktrackingModule : PluginModule
 {
     protected override void OnEnabled()
     {
-        if (!Config.Instance.ServersideBacktrack && !Config.Instance.PickupValidation && !Config.Instance.DoorInteractionValidation)
+        if (!Config.Instance.ServersideBacktrack && !Config.Instance.PickupValidation && !Config.Instance.DoorInteractionValidation && !Config.Instance.AntiNoRecoil)
             return;
 
         SunrisePlugin.Harmony.CreateClassProcessor(typeof(FpcMouseLookPatch)).Patch();

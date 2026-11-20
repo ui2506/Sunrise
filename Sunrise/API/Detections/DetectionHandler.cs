@@ -27,16 +27,7 @@ internal class DetectionHandler : PluginModule
 
         ReportCoolDown[player] = Time.time + 10f;
 
-        string reason = $"[Sunrise] {detection} detected!";
-        string report = $"{reason}\nPlayer [{player.PlayerId}] {player.Nickname} ({player.UserId})\n{details}";
-
-        Log.Warn(report);
-        
-        if (!string.IsNullOrWhiteSpace(Config.Instance.DetectWebhook))
-            _ = SendWebhook(Config.Instance.DetectWebhook, report);
-
-        if (Config.Instance.DetectReport)
-            SendReport(player, $"{reason}\n{details}");
+        string reason = Report(player, detection, details);
 
         switch (action)
         {
@@ -64,6 +55,22 @@ internal class DetectionHandler : PluginModule
 
                 break;
         }
+    }
+
+    internal static string Report(Player player, string detection, string details)
+    {
+        string reason = $"[Sunrise] {detection} detected!";
+        string report = $"{reason}\nPlayer [{player.PlayerId}] {player.Nickname} ({player.UserId})\n{details}";
+
+        Log.Warn(report);
+
+        if (!string.IsNullOrWhiteSpace(Config.Instance.DetectWebhook))
+            _ = SendWebhook(Config.Instance.DetectWebhook, report);
+
+        if (Config.Instance.DetectReport)
+            SendReport(player, $"{reason}\n{details}");
+
+        return reason;
     }
 
     static void SendReport(Player player, string reason)

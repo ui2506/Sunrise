@@ -23,6 +23,7 @@ public struct BacktrackEntry
     }
 
     public Quaternion Rotation { get; set; }
+    internal bool IsForecast { get; set; }
     public Vector3 Position { get; set; }
     public float Timestamp { get; set; } = Time.time;
 

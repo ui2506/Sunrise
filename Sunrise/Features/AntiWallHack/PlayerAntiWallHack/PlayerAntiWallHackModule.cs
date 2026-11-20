@@ -7,7 +7,6 @@ using PlayerRoles.FirstPersonControl;
 using PlayerRoles.FirstPersonControl.NetworkMessages;
 using PlayerRoles.PlayableScps.Scp049;
 using PlayerRoles.PlayableScps.Scp096;
-using PlayerRoles.PlayableScps.Scp939;
 using Sunrise.API.Visibility;
 using Sunrise.Features.AntiWallHack.PlayerAntiWallHack.ForcedVisibility;
 using System;
@@ -17,7 +16,7 @@ namespace Sunrise.Features.AntiWallHack.PlayerAntiWallHack;
 internal class PlayerAntiWallHackModule : PluginModule
 {
     // After player lands their visibility should stay on for some time
-    internal static readonly Dictionary<Player, float> LandingTimes = [];
+    internal static readonly Dictionary<Player, float> BypassedPlayers = [];
 
     static readonly Dictionary<Player, List<Player>> VisiblePlayers = [];
     static readonly Dictionary<Player, float> VisibilityRanges = [];
@@ -36,6 +35,7 @@ internal class PlayerAntiWallHackModule : PluginModule
         SunrisePlugin.Harmony.CreateClassProcessor(typeof(PlayerLandingPatch)).Patch();
 
         Handlers.PlayerEvents.ValidatedVisibility += OnValidatedVisibility;
+        Handlers.PlayerEvents.ShootingWeapon += OnShootingWeapon;
         Handlers.PlayerEvents.Left += OnPlayerLeft;
         Handlers.PlayerEvents.ChangedRole += OnChangedRole;
 
@@ -46,6 +46,7 @@ internal class PlayerAntiWallHackModule : PluginModule
     protected override void OnDisabled()
     {
         Handlers.PlayerEvents.ValidatedVisibility -= OnValidatedVisibility;
+        Handlers.PlayerEvents.ShootingWeapon -= OnShootingWeapon;
         Handlers.PlayerEvents.Left -= OnPlayerLeft;
         Handlers.PlayerEvents.ChangedRole -= OnChangedRole;
         Handlers.PlayerEvents.ChangedSpectator -= OnChangedSpectator;
@@ -53,22 +54,24 @@ internal class PlayerAntiWallHackModule : PluginModule
 
     protected override void OnReset()
     {
-        LandingTimes.Clear();
+        BypassedPlayers.Clear();
         VisiblePlayers.Clear();
         VisibilityRanges.Clear();
         RaycastVisibilityCache.Clear();
     }
 
+    static void OnShootingWeapon(PlayerShootingWeaponEventArgs ev) => BypassedPlayers[ev.Player] = Time.time + 1f;
+
     static void OnPlayerLeft(PlayerLeftEventArgs ev)
     {
-        LandingTimes.Remove(ev.Player);
+        BypassedPlayers.Remove(ev.Player);
         RemoveVisibility(ev.Player);
         RaycastVisibilityCache.Remove(ev.Player.PlayerId);
     }
 
     static void OnChangedRole(PlayerChangedRoleEventArgs ev)
     {
-        LandingTimes.Remove(ev.Player);
+        BypassedPlayers.Remove(ev.Player);
         RemoveVisibility(ev.Player);
         RaycastVisibilityCache.Remove(ev.Player.PlayerId);
     }
@@ -137,6 +140,9 @@ internal class PlayerAntiWallHackModule : PluginModule
                 return;
             }
 
+            if (BypassedPlayers.TryGetValue(ev.Target, out float until) && until > Time.time)
+                return;
+
             if (IsExceptionalObserver(ev.Player, ev.Target))
                 return;
 
@@ -191,6 +197,7 @@ internal class PlayerAntiWallHackModule : PluginModule
 
     static void RemoveVisibility(Player player)
     {
+        BypassedPlayers.Remove(player);
         VisibilityRanges.Remove(player);
         VisiblePlayers.Remove(player);
 
@@ -227,8 +234,8 @@ internal class PlayerAntiWallHackModule : PluginModule
             return true;
 
         // These roles have their own visibility systems.
-        return observer.RoleBase is Scp939Role
-            || observer.RoleBase is Scp096Role { StateController.RageState: Scp096RageState.Enraged };
+        return observer.RoleBase is Scp096Role scp096 && scp096.StateController.RageState == Scp096RageState.Enraged && scp096.SubroutineModule.TryGetSubroutine(out Scp096TargetsTracker targetSub) && targetSub.Targets.Contains(target.ReferenceHub);
+        //observer.RoleBase is Scp939Role
     }
 }
 
@@ -239,6 +246,6 @@ internal static class PlayerLandingPatch
     static void Prefix(FirstPersonMovementModule __instance, bool value)
     {
         if (value && !__instance._syncGrounded && Player.Get(__instance.Hub) is Player player)
-            PlayerAntiWallHackModule.LandingTimes[player] = Time.time;
+            PlayerAntiWallHackModule.BypassedPlayers[player] = Time.time + 0.5f;
     }
 }
