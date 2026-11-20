@@ -1,4 +1,5 @@
 using HarmonyLib;
+using InventorySystem.Items.Firearms;
 using InventorySystem.Items.Pickups;
 using InventorySystem.Items.ThrowableProjectiles;
 using InventorySystem.Items.Usables.Scp244;
@@ -10,7 +11,6 @@ using PlayerRoles.FirstPersonControl;
 using PlayerRoles.PlayableScps.Scp079;
 using PlayerRoles.Spectating;
 using Sunrise.API.Visibility;
-using System.IO.Pipes;
 
 namespace Sunrise.Features.AntiWallHack.PickupAntiWallHack;
 
@@ -58,7 +58,13 @@ internal class PickupAntiWallHackModule : PluginModule
         lastSlot = CurrentSlot;
     }
 
-    static void OnPickupDestroyed(ItemPickupBase pickup) => Pickups.Remove(pickup);
+    static void OnPickupDestroyed(ItemPickupBase pickup)
+    {
+        Pickups.Remove(pickup);
+
+        foreach (Player player in Observers)
+            player.ConnectionToClient.RemoveFromObserving(pickup.netIdentity, false);
+    }
 
     static void OnLeft(PlayerLeftEventArgs ev)
     {
@@ -213,7 +219,7 @@ internal class PickupAntiWallHackModule : PluginModule
 
         float sqrDistance = (camera - pickup.Position).sqrMagnitude;
 
-        if (sqrDistance <= 5f * 5f)
+        if (sqrDistance <= 3f * 3f)
             return true;
 
         if (!VisibilityData.InRange(camera, sqrDistance))

@@ -125,7 +125,12 @@ internal class PlayerAntiWallHackModule : PluginModule
 
             Vector3 observerPosition = observerRole.FpcModule.Position;
             Vector3 targetPosition = ev.Target.Position;
+
             float sqrDistance = (observerPosition - targetPosition).sqrMagnitude;
+
+            if (sqrDistance <= 2f * 2f)
+                return;
+
             if (!VisibilityData.InRange(observerPosition, sqrDistance))
             {
                 ev.IsVisible = false;
@@ -142,6 +147,7 @@ internal class PlayerAntiWallHackModule : PluginModule
 
             Room? observerRoom = VisibilityData.GetRoom(observerPosition);
             Room? targetRoom = VisibilityData.GetRoom(targetPosition);
+
             if (observerRoom != null && !ev.Target.IsDestroyed && !VisibilityData.Get(observerRoom).IsVisible(targetRoom))
             {
                 ev.IsVisible = false;
