@@ -1,5 +1,4 @@
 using HarmonyLib;
-using InventorySystem.Items.Firearms;
 using InventorySystem.Items.Pickups;
 using InventorySystem.Items.ThrowableProjectiles;
 using InventorySystem.Items.Usables.Scp244;
@@ -9,20 +8,22 @@ using Mirror;
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
 using PlayerRoles.PlayableScps.Scp079;
-using PlayerRoles.Spectating;
 using Sunrise.API.Visibility;
 
 namespace Sunrise.Features.AntiWallHack.PickupAntiWallHack;
 
 internal class PickupAntiWallHackModule : PluginModule
 {
-    const float UpdateInterval = 0.1f;
-
-    static readonly Dictionary<ItemPickupBase, VisibilityState> Pickups = [];
-    static readonly List<Player> PendingPlayers = [];
-    static readonly List<Player> Observers = [];
+    const float NearDistanceSquared = 3f * 3f;
     const int UpdateGroups = 6;
-    static int lastSlot;
+
+    static readonly Dictionary<ItemPickupBase, PickupPoints> Points = [];
+    static readonly Dictionary<Player, List<ItemPickupBase>> VisiblePickups = [];
+    static readonly Dictionary<Player, List<ItemPickupBase>> DirectlyVisible = [];
+    static readonly Dictionary<Player, float> NextVisibleCheck = [];
+    static readonly List<ItemPickupBase> Candidates = [];
+    static int lastSlot = -1;
+    static int group;
 
     protected override void OnEnabled()
     {
@@ -56,113 +57,217 @@ internal class PickupAntiWallHackModule : PluginModule
 
     protected override void OnReset()
     {
-        Pickups.Clear();
-        PendingPlayers.Clear();
-        Observers.Clear();
-        lastSlot = CurrentSlot;
+        Points.Clear();
+        VisiblePickups.Clear();
+        DirectlyVisible.Clear();
+        NextVisibleCheck.Clear();
+        Candidates.Clear();
+        lastSlot = -1;
+        group = 0;
     }
 
     static void OnPickupDestroyed(ItemPickupBase pickup)
     {
-        Pickups.Remove(pickup);
+        Points.Remove(pickup);
 
-        foreach (Player player in Observers)
-            player.ConnectionToClient.RemoveFromObserving(pickup.netIdentity, false);
+        foreach (var list in VisiblePickups.Values)
+            list.Remove(pickup);
+
+        foreach (var list in DirectlyVisible.Values)
+            list.Remove(pickup);
     }
 
-    static void OnLeft(PlayerLeftEventArgs ev)
-    {
-        RemovePlayer(ev.Player);
-        PendingPlayers.Remove(ev.Player);
-    }
+    static void OnChangedRole(PlayerChangedRoleEventArgs ev) => RemovePlayer(ev.Player);
 
-    static void OnChangedRole(PlayerChangedRoleEventArgs ev)
+    static void OnLeft(PlayerLeftEventArgs ev) => RemovePlayer(ev.Player);
+
+    static void RemovePlayer(Player player)
     {
-        RemovePlayer(ev.Player);
-        QueueUpdate(ev.Player);
+        VisiblePickups.Remove(player);
+        DirectlyVisible.Remove(player);
+        NextVisibleCheck.Remove(player);
     }
 
     static void OnChangedSpectator(PlayerChangedSpectatorEventArgs ev)
     {
-        if (Config.Instance.SpectatorAntiWallhack && ev.NewTarget != ev.OldTarget)
-            QueueUpdate(ev.Player);
+        if (Config.Instance.SpectatorAntiWallhack && ev.NewTarget != ev.OldTarget && ev.Player.IsReady)
+            SyncObservers(ev.Player, ev.NewTarget);
     }
-
-    static void QueueUpdate(Player player)
-    {
-        if (!PendingPlayers.Contains(player))
-            PendingPlayers.Add(player);
-    }
-
-    static void RemovePlayer(Player player)
-    {
-        foreach (VisibilityState state in Pickups.Values)
-            state.Players.Remove(player);
-    }
-
-    static int CurrentSlot => Mathf.FloorToInt(Time.time * (UpdateGroups / UpdateInterval));
 
     static void OnUpdate()
     {
-        int slot = CurrentSlot;
-        int elapsed = slot - lastSlot;
+        int slot = Mathf.FloorToInt(Time.time * (UpdateGroups / 0.1f));
 
-        if (elapsed == 0 && PendingPlayers.Count == 0)
+        if (slot == lastSlot)
             return;
 
         lastSlot = slot;
-        Observers.Clear();
+        group = (group + 1) % UpdateGroups;
 
         foreach (Player player in Player.List)
         {
-            // Each connection is due once per cycle. A slow frame also handles the skipped groups.
-            int slotsSinceTurn = (slot % UpdateGroups + UpdateGroups - player.PlayerId % UpdateGroups) % UpdateGroups;
-
-            if (slotsSinceTurn >= elapsed && !PendingPlayers.Contains(player))
+            if (player.PlayerId % UpdateGroups != group || !player.IsPlayer || !player.IsReady)
                 continue;
 
-            if (player.IsPlayer && player.IsReady)
-                Observers.Add(player);
+            if (player.Role == RoleTypeId.Spectator)
+            {
+                SyncObservers(player, player.CurrentlySpectating);
+                continue;
+            }
+
+            if (player.RoleBase is IFpcRole || player.RoleBase is Scp079Role)
+                UpdateVisiblePickups(player);
+
+            SyncObservers(player, player);
         }
+    }
 
-        PendingPlayers.Clear();
+    static void UpdateVisiblePickups(Player player)
+    {
+        if (!VisiblePickups.TryGetValue(player, out var visible))
+            VisiblePickups[player] = visible = [];
 
-        if (Observers.Count == 0)
-            return;
+        if (!DirectlyVisible.TryGetValue(player, out var direct))
+            DirectlyVisible[player] = direct = [];
+
+        bool recheckVisible = !NextVisibleCheck.TryGetValue(player, out float next) || Time.time >= next;
+
+        if (recheckVisible)
+            NextVisibleCheck[player] = Time.time + 1f;
+
+        Vector3 camera = player.RoleBase is Scp079Role scp079 ? scp079.CameraPosition : player.Camera.position;
+
+        float range = VisibilityData.GetRangeSquared(camera);
+
+        Room? room = VisibilityData.GetRoom(camera);
+
+        Candidates.Clear();
 
         foreach (Pickup pickup in Pickup.List)
         {
-            if (!pickup.IsSpawned || IsExcluded(pickup.Base))
-                continue;
+            ItemPickupBase item = pickup.Base;
 
-            NetworkIdentity identity = pickup.NetworkIdentity;
-            bool available = !identity.serverOnly && identity.gameObject.activeSelf && identity.visible != Visibility.ForceHidden;
+            float distance = (camera - item.Position).sqrMagnitude;
 
-            if (!available && identity.observers.Count == 0)
-                continue;
-
-            InterestManagementBase? aoi = identity.visible == Visibility.ForceShown ? null : NetworkServer.aoi;
-
-            foreach (Player player in Observers)
+            if (!pickup.IsSpawned || distance > range || IsExcluded(item) || !CanObserve(pickup.NetworkIdentity, player.ConnectionToClient))
             {
-                NetworkConnectionToClient connection = player.ConnectionToClient;
+                direct.Remove(item);
+                continue;
+            }
 
-                bool visible = available && (aoi == null || aoi.OnCheckObserver(identity, connection)) && IsVisible(pickup.Base, player, slot);
+            bool seen = distance <= NearDistanceSquared;
 
-                if (identity.observers.ContainsKey(connection.connectionId) == visible)
-                    continue;
+            if (!seen && !recheckVisible && visible.Contains(item))
+            {
+                if (!direct.Contains(item))
+                    Candidates.Add(item);
 
-                if (visible)
+                continue;
+            }
+
+            if (!seen)
+            {
+                if (!Points.TryGetValue(item, out var points))
+                    Points[item] = points = new(item);
+
+                seen = points.IsVisible(camera, room);
+            }
+
+            if (!seen)
+            {
+                direct.Remove(item);
+                Candidates.Add(item);
+            }
+            else if (!direct.Contains(item))
+            {
+                direct.Add(item);
+            }
+        }
+
+        visible.Clear();
+        visible.AddRange(direct);
+
+        foreach (ItemPickupBase item in Candidates)
+        {
+            foreach (ItemPickupBase source in direct)
+            {
+                if ((source.Position - item.Position).sqrMagnitude <= NearDistanceSquared)
                 {
-                    identity.AddObserver(connection);
-                }
-                else
-                {
-                    identity.RemoveObserver(connection);
-                    connection.RemoveFromObserving(identity, false);
+                    visible.Add(item);
+                    break;
                 }
             }
         }
+    }
+
+    static bool CanObserve(NetworkIdentity identity, NetworkConnectionToClient connection)
+        => !identity.serverOnly && identity.gameObject.activeSelf && identity.visible != Visibility.ForceHidden
+            && (identity.visible == Visibility.ForceShown || NetworkServer.aoi == null || NetworkServer.aoi.OnCheckObserver(identity, connection));
+
+    static void SyncObservers(Player player, Player? target)
+    {
+        List<ItemPickupBase>? visible = null;
+
+        if (target != null)
+            VisiblePickups.TryGetValue(target, out visible);
+
+        bool showAll = player.Role == RoleTypeId.Overwatch || (player.Role == RoleTypeId.Spectator && !Config.Instance.SpectatorAntiWallhack);
+
+        NetworkConnectionToClient connection = player.ConnectionToClient;
+
+        foreach (Pickup pickup in Pickup.List)
+        {
+            if (!pickup.IsSpawned)
+                continue;
+
+            NetworkIdentity identity = pickup.NetworkIdentity;
+
+            bool show = (showAll || IsExcluded(pickup.Base) || visible?.Contains(pickup.Base) == true) && CanObserve(identity, connection);
+
+            if (show == identity.observers.ContainsKey(connection.connectionId))
+                continue;
+
+            if (show)
+            {
+                identity.AddObserver(connection);
+            }
+            else
+            {
+                identity.RemoveObserver(connection);
+                connection.RemoveFromObserving(identity, false);
+            }
+        }
+    }
+
+    internal static bool AllowObserver(NetworkIdentity identity, NetworkConnectionToClient connection)
+    {
+        if (connection is LocalConnectionToClient || !identity.TryGetComponent(out ItemPickupBase pickup) || IsExcluded(pickup))
+            return true;
+
+        if (connection.identity == null || !ReferenceHub.TryGetHubNetID(connection.identity.netId, out ReferenceHub hub))
+            return false;
+
+        Player player = Player.Get(hub);
+        if (player.Role == RoleTypeId.Overwatch)
+            return true;
+
+        if (player.Role == RoleTypeId.Spectator)
+        {
+            if (!Config.Instance.SpectatorAntiWallhack)
+                return true;
+
+            return player.CurrentlySpectating is Player target && VisiblePickups.TryGetValue(target, out var items) && items.Contains(pickup);
+        }
+
+        if (player.RoleBase is not IFpcRole && player.RoleBase is not Scp079Role)
+            return false;
+
+        Vector3 camera = player.RoleBase is Scp079Role scp079 ? scp079.CameraPosition : player.Camera.position;
+
+        float distance = (camera - pickup.Position).sqrMagnitude;
+
+        return distance <= NearDistanceSquared || (VisibilityData.InRange(camera, distance)
+            && VisiblePickups.TryGetValue(player, out var visible) && visible.Contains(pickup));
     }
 
     static bool IsExcluded(ItemPickupBase pickup)
@@ -178,197 +283,6 @@ internal class PickupAntiWallHackModule : PluginModule
 
             default:
                 return pickup is ThrownProjectile;
-        }
-    }
-
-    internal static bool AllowObserver(NetworkIdentity identity, NetworkConnectionToClient connection)
-    {
-        if (connection is LocalConnectionToClient || !identity.TryGetComponent(out ItemPickupBase pickup) || IsExcluded(pickup))
-            return true;
-
-        if (connection.identity == null || !ReferenceHub.TryGetHubNetID(connection.identity.netId, out ReferenceHub hub))
-            return false;
-
-        return IsVisible(pickup, Player.Get(hub), CurrentSlot);
-    }
-
-    static bool IsVisible(ItemPickupBase pickup, Player player, int slot)
-    {
-        if (player.Role == RoleTypeId.Overwatch)
-            return true;
-
-        if (player.Role == RoleTypeId.Spectator)
-        {
-            if (!Config.Instance.SpectatorAntiWallhack)
-                return true;
-
-            if (AntiWallHackModule.TryGetDeathPosition(player, out Vector3 deathPosition))
-                return (deathPosition - pickup.Position).sqrMagnitude <= 30f * 30f;
-
-            Player? target = player.CurrentlySpectating;
-
-            if (target == null)
-                return player.RoleBase is SpectatorRole spectator && (spectator.DeathPosition.Position - pickup.Position).sqrMagnitude <= 30f * 30f;
-
-            if (target.RoleBase is SpectatorRole deadTarget)
-                return (deadTarget.DeathPosition.Position - pickup.Position).sqrMagnitude <= 30f * 30f;
-
-            player = target;
-        }
-
-        if (player.RoleBase is not IFpcRole && player.RoleBase is not Scp079Role)
-            return false;
-
-        Vector3 camera = player.RoleBase is Scp079Role scp079 ? scp079.CameraPosition : player.Camera.position;
-
-        float sqrDistance = (camera - pickup.Position).sqrMagnitude;
-
-        if (sqrDistance <= 3f * 3f)
-            return true;
-
-        if (!VisibilityData.InRange(camera, sqrDistance))
-            return false;
-
-        if (!Pickups.TryGetValue(pickup, out VisibilityState state))
-            Pickups[pickup] = state = new(pickup);
-
-        if (state.Players.TryGetValue(player, out var cache) && cache.Expiration > slot)
-            return cache.Visible;
-
-        bool visible = CheckVisibility(camera, pickup, state);
-
-        state.Players[player] = (slot + (visible ? 5 : 1) * UpdateGroups, visible);
-
-        return visible;
-    }
-
-    static bool CheckVisibility(Vector3 camera, ItemPickupBase pickup, VisibilityState state)
-    {
-        Room? observerRoom = VisibilityData.GetRoom(camera);
-        Room? targetRoom = state.GetRoom();
-
-        if (observerRoom != null && !VisibilityData.Get(observerRoom).IsVisible(targetRoom))
-            return false;
-
-        int mask = VisibilityData.GetVisionMask(observerRoom, targetRoom);
-
-        Bounds bounds = state.GetBounds();
-        Vector3 center = bounds.center;
-
-        if (CheckLine(camera, center, pickup, mask))
-            return true;
-
-        Vector3 extents = bounds.extents;
-
-        return CheckLine(camera, center + Vector3.up * extents.y, pickup, mask)
-            || CheckLine(camera, center + Vector3.right * extents.x, pickup, mask)
-            || CheckLine(camera, center - Vector3.right * extents.x, pickup, mask)
-            || CheckLine(camera, center + Vector3.forward * extents.z, pickup, mask)
-            || CheckLine(camera, center - Vector3.forward * extents.z, pickup, mask);
-    }
-
-    static bool CheckLine(Vector3 camera, Vector3 point, ItemPickupBase pickup, int mask)
-        => !Physics.Linecast(camera, point, out RaycastHit hit, mask, QueryTriggerInteraction.Ignore)
-        || hit.transform.IsChildOf(pickup.transform);
-
-    class VisibilityState(ItemPickupBase pickup)
-    {
-        public readonly Dictionary<Player, (int Expiration, bool Visible)> Players = [];
-        Vector3? _position;
-        Quaternion _rotation;
-        Vector3 _scale;
-        FirearmWorldmodel? _model;
-        Renderer[]? _renderers;
-        Collider[]? _colliders;
-        uint _attachments;
-        float _nextDraw;
-        int _roomFrame = -1;
-        Room? _room;
-        Bounds _bounds;
-
-        public Room? GetRoom()
-        {
-            int frame = Time.frameCount;
-
-            if (_roomFrame != frame)
-            {
-                _room = VisibilityData.GetRoom(pickup.Position);
-                _roomFrame = frame;
-            }
-
-            return _room;
-        }
-
-        public Bounds GetBounds()
-        {
-            Vector3 position = pickup.Position;
-            Quaternion rotation = pickup.Rotation;
-            Vector3 scale = pickup.transform.lossyScale;
-
-            FirearmWorldmodel? model = (pickup as InventorySystem.Items.Firearms.FirearmPickup)?._worldmodelInstance;
-
-            uint attachments = model != null ? model.AttachmentCode : 0;
-
-            if (_position != position || _rotation != rotation || _scale != scale || _model != model || _attachments != attachments)
-            {
-                _position = position;
-                _rotation = rotation;
-                _scale = scale;
-                _model = model;
-                _attachments = attachments;
-                _bounds = CalculateBounds(model, position);
-                _bounds.extents += Vector3.one * 0.15f;
-            }
-
-            if (Config.Instance.DebugPrimitives && Time.time >= _nextDraw)
-            {
-                _nextDraw = Time.time + UpdateInterval;
-
-                Vector3 center = _bounds.center;
-                Vector3 extents = _bounds.extents;
-
-                Debug.DrawPoint(center, Colors.Orange * 50, 0.11f);
-                Debug.DrawPoint(center + Vector3.up * extents.y, Colors.Orange * 50, 0.11f);
-                Debug.DrawPoint(center + Vector3.right * extents.x, Colors.Orange * 50, 0.11f);
-                Debug.DrawPoint(center - Vector3.right * extents.x, Colors.Orange * 50, 0.11f);
-                Debug.DrawPoint(center + Vector3.forward * extents.z, Colors.Orange * 50, 0.11f);
-                Debug.DrawPoint(center - Vector3.forward * extents.z, Colors.Orange * 50, 0.11f);
-            }
-
-            return _bounds;
-        }
-
-        Bounds CalculateBounds(FirearmWorldmodel? model, Vector3 position)
-        {
-            Bounds bounds = default;
-
-            foreach (Renderer renderer in model != null ? model.Renderers : (_renderers ??= pickup.GetComponentsInChildren<Renderer>(true)))
-            {
-                if (renderer != null && renderer is MeshRenderer or SkinnedMeshRenderer && renderer.enabled && renderer.gameObject.activeInHierarchy)
-                    Include(renderer.bounds);
-            }
-
-            if (bounds.size != Vector3.zero)
-                return bounds;
-
-            foreach (Collider collider in model != null && model.Colliders.Length > 0 ? model.Colliders : (_colliders ??= pickup.GetComponentsInChildren<Collider>(true)))
-            {
-                if (collider != null && collider.enabled && collider.gameObject.activeInHierarchy)
-                    Include(collider.bounds);
-            }
-
-            return bounds.size != Vector3.zero ? bounds : new Bounds(position, Vector3.one * 0.1f);
-
-            void Include(Bounds part)
-            {
-                if (part.size == Vector3.zero)
-                    return;
-
-                if (bounds.size == Vector3.zero)
-                    bounds = part;
-                else
-                    bounds.Encapsulate(part);
-            }
         }
     }
 }

@@ -30,7 +30,7 @@ public sealed class Config
     [Description("Anti-wallhack for spectators. Spectators only see the players that are currently visible to a living player. (Overwatch still see all players) (There is a delay of approximately 0.3 seconds before players appear.)")]
     public bool SpectatorAntiWallhack { get; set; } = true;
 
-    [Description("Hides pickups behind walls using room visibility and raycasts. Checks every 0.1 seconds and caches visible results for 0.5 seconds. Radios, both SCP-244 variants and thrown projectiles are excluded.")]
+    [Description("Checks hidden pickups every 0.1 seconds and visible pickups every second. Pickups within 3 units of the observer or a directly visible pickup are shown within the normal visibility range. Radios, active SCP-244 instances and thrown projectiles are excluded.")]
     public bool PickupAntiWallhack { get; set; } = true;
 
     [Description("Checks line of sight when a player starts picking up an item and detects pickups that finish too quickly.")]
