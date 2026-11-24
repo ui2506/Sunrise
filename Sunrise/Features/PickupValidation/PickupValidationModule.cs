@@ -36,8 +36,5 @@ internal class PickupValidationModule : PluginModule
 
     protected override void OnReset() => PickupValidator.Clear();
 
-    static void OnScp914ProcessingInventoryItem(Scp914ProcessingInventoryItemEventArgs ev)
-    {
-        PickupValidator.TemporaryPlayerBypass[ev.Player] = Time.time + 0.01f;
-    }
+    static void OnScp914ProcessingInventoryItem(Scp914ProcessingInventoryItemEventArgs ev) => PickupValidator.TemporaryPlayerBypass[ev.Player] = Time.time + 0.01f;
 }

@@ -102,7 +102,7 @@ internal class AntiBigStepModule : PluginModule
 
         int ping = LiteNetLib4MirrorServer.GetPing(player.Connection.connectionId) * 2;
         string details = string.Empty;
-        bool confirmed = serverDifference > 1f && module.CharController.stepOffset > 0.225f && ping < 200;
+        bool confirmed = serverDifference > 1f && module.CharController.stepOffset > 0.225f && ping < 120;
         bool warn = !confirmed && now >= data.NextWarning;
 
         if (warn || DetectionHandler.CanReport(player))

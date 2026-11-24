@@ -33,13 +33,13 @@ public sealed class Config
     [Description("Hides pickups behind walls using room visibility and raycasts. Checks every 0.1 seconds and caches visible results for 0.5 seconds. Radios, both SCP-244 variants and thrown projectiles are excluded.")]
     public bool PickupAntiWallhack { get; set; } = true;
 
-    [Description("Prevents picking up items through walls. Performance impact negligible.")]
+    [Description("Checks line of sight when a player starts picking up an item and detects pickups that finish too quickly.")]
     public bool PickupValidation { get; set; } = true;
     public DetectionConfig FastPickupDetectConfig { get; set; } = new DetectionConfig
     {
-        DetectAction = ActionType.Ban,
+        DetectAction = ActionType.None,
         DetectBanDuration = 1577000000,
-        DetectReport = true,
+        DetectReport = false,
         DetectWebhook = ""
     };
 
@@ -49,11 +49,12 @@ public sealed class Config
     [Description("Prevents cheaters from ignoring tesla damage. Performance impact negligible.")]
     public bool ServersideTeslaDamage { get; set; } = true;
 
-    [Description("Prevents cheaters from interacting with doors they're not looking at. Performance impact negligible.")]
+    [Description("Checks that players are looking at the door, locker compartment, or elevator panel they interact with.")]
     public bool DoorInteractionValidation { get; set; } = true;
 
-    [Description("Detects BigStep movement. Uses DetectAction for server differences greater than 1 unit.")]
+    [Description("Detects BigStep movement and corrects suspicious upward movement. Confirmed detections use the configured detection action.")]
     public bool AntiBigStep { get; set; } = true;
+
     public DetectionConfig AntiBigStepDetectConfig { get; set; } = new DetectionConfig
     {
         DetectAction = ActionType.Ban,
@@ -62,7 +63,7 @@ public sealed class Config
         DetectWebhook = ""
     };
 
-    [Description("Reports sustained bursts with unusually little recoil after accounting for aim tracking.")]
+    [Description("Detects sustained bursts with unusually little recoil after accounting for aim movement. Detections use the configured NoRecoil action.")]
     public bool AntiNoRecoil { get; set; } = true;
     public DetectionConfig AntiNoRecoilDetectConfig { get; set; } = new DetectionConfig
     {
@@ -71,6 +72,12 @@ public sealed class Config
         DetectReport = true,
         DetectWebhook = ""
     };
+
+    [Description("Ban a player when their warnings across all detections reach this threshold within the warning window. Detections with an initial action of None, Kick, or Kill count as warnings. Set to 0 to disable warning-based bans.")]
+    public int MaxWarnCount { get; set; } = 3;
+
+    [Description("How far back to count a player's warnings, in seconds.")]
+    public int MaxWarnCountWindow { get; set; } = 20;
 
     #region Singleton
 
