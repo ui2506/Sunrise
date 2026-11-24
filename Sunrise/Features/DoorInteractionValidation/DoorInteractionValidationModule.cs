@@ -1,8 +1,9 @@
+using Interactables;
+using Interactables.Verification;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Features.Enums;
-using PlayerRoles.FirstPersonControl;
 using LabApi.Features.Wrappers;
-using Interactables;
+using PlayerRoles.FirstPersonControl;
 using Sunrise.API.Backtracking;
 
 namespace Sunrise.Features.DoorInteractionValidation;
@@ -18,6 +19,8 @@ internal class AntiDoorManipulatorModule : PluginModule
         }
 
         Handlers.PlayerEvents.InteractingDoor += OnInteractingDoor;
+        Handlers.PlayerEvents.InteractingLocker += OnInteractingLocker;
+        Handlers.PlayerEvents.InteractingElevator += OnInteractingElevator;
 
         base.OnEnabled();
     }
@@ -25,64 +28,78 @@ internal class AntiDoorManipulatorModule : PluginModule
     protected override void OnDisabled()
     {
         Handlers.PlayerEvents.InteractingDoor -= OnInteractingDoor;
+        Handlers.PlayerEvents.InteractingLocker -= OnInteractingLocker;
+        Handlers.PlayerEvents.InteractingElevator -= OnInteractingElevator;
 
         base.OnDisabled();
     }
 
     static void OnInteractingDoor(PlayerInteractingDoorEventArgs ev)
     {
-        if (ev.Player.RoleBase is not IFpcRole || ev.Player.IsNoclipEnabled || ev.Door.DoorName == DoorName.Lcz330Chamber)
+        if (!ev.IsAllowed || !ev.CanOpen)
             return;
 
-        if (!CanInteract(ev.Player, ev))
-        {
-            if (Config.Instance.Debug)
-                ev.CanOpen = false;
-            else
-                ev.IsAllowed = false;
-        }
+        if (ev.Door.DoorName == DoorName.Lcz330Chamber || ev.Player.RoleBase is not IFpcRole || ev.Player.IsNoclipEnabled)
+            return;
+
+        if (CanInteract(ev.Player, ev.Door.Base))
+            return;
+
+        if (Config.Instance.Debug)
+            ev.IsAllowed = false;
+        else
+            ev.CanOpen = false;
     }
 
-    static bool CanInteract(Player player, PlayerInteractingDoorEventArgs ev)
+    static void OnInteractingLocker(PlayerInteractingLockerEventArgs ev)
     {
-        Vector3 forward = BacktrackHistory.Get(player).LatestForward;
+        if (!ev.IsAllowed || ev.Player.RoleBase is not IFpcRole || ev.Player.IsNoclipEnabled)
+            return;
 
-        if (InteractableCollider.AllInstances.TryGetValue(ev.Door.Base, out Dictionary<byte, InteractableCollider> buttons))
-        {
-            foreach (InteractableCollider button in buttons.Values)
-            {
-                if (LooksAtCollider(player, forward, button.transform.position + button.transform.TransformDirection(button.VerificationOffset)))
-                    return true;
-            }
-        }
-
-        foreach (BoxCollider collider in ev.Door.Base.AllColliders)
-        {
-            if (LooksAtCollider(player, forward, collider.transform.TransformPoint(collider.center)))
-                return true;
-        }
-
-        Ray ray = new(player.Camera.position, forward);
-
-        if (Physics.Raycast(ray, out RaycastHit hit, 3, (int)(Mask.Doors | Mask.DoorButtons | Mask.Glass)))
-        {
-            Debug.DrawLine(ray.origin, hit.point, Colors.Yellow * 50, 15);
-            return true;
-        }
-
-        Debug.Log($"Door interaction blocked. Player: {player.Nickname}, Door: {ev.Door.Position}");
-        return false;
+        if (!CanInteract(ev.Player, ev.Locker.Base, ev.Chamber.Id))
+            ev.IsAllowed = false;
     }
 
-    static bool LooksAtCollider(Player player, Vector3 forward, Vector3 colliderPos)
+    static void OnInteractingElevator(PlayerInteractingElevatorEventArgs ev)
     {
-        const float AllowedAngle = 30;
+        if (!ev.IsAllowed || ev.Player.RoleBase is not IFpcRole || ev.Player.IsNoclipEnabled)
+            return;
 
-        Vector3 direction = (colliderPos - player.Camera.position).normalized;
-        float angle = Vector3.Angle(forward with { y = direction.y }, direction);
+        if (!CanInteract(ev.Player, ev.Panel.Target, ev.Panel.ColliderId))
+            ev.IsAllowed = false;
+    }
 
-        if (angle < AllowedAngle)
+    static bool CanInteract(Player player, MonoBehaviour target, byte? colliderId = null)
+    {
+        const float maxDistance = StandardDistanceVerification.DefaultMaxDistance * 1.4f;
+
+        Ray ray = new(player.Camera.position, BacktrackHistory.Get(player).LatestForward);
+
+        bool isHitted = Physics.Raycast(ray, out RaycastHit hit, maxDistance, InteractionCoordinator.RaycastMask & ~(int)(Mask.PlayerObjects | Mask.PlayerHitbox));
+
+        InteractableCollider? collider = null;
+
+        if (isHitted && !hit.collider.TryGetComponent(out collider) && hit.collider.transform.parent is Transform parent)
+            parent.TryGetComponent(out collider);
+
+        bool isAllowed = collider != null && collider.Target == target && (!colliderId.HasValue || collider.ColliderId == colliderId);
+
+        if (Config.Instance.DebugPrimitives)
+        {
+            Vector3 end = isHitted ? hit.point : ray.GetPoint(maxDistance);
+            Color color = (isAllowed ? Colors.Green : Colors.Red) * 50;
+
+            Debug.DrawLine(ray.origin, end, color, 2f);
+        }
+
+        if (isAllowed)
             return true;
+
+        if (Config.Instance.Debug)
+        {
+            string actual = isHitted ? $"{hit.collider.name} at {hit.distance:F2} m, target {collider?.Target}, ID {collider?.ColliderId}" : $"no hit within {maxDistance:F2} m";
+            Debug.Log($"Interaction blocked for {player.Nickname}. Expected {target}, ID {colliderId?.ToString() ?? "any"}. Ray hit: {actual}.");
+        }
 
         return false;
     }

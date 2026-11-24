@@ -32,11 +32,8 @@ internal static class PickupValidator
 
         float duration = ev.Pickup.Base.SearchTimeForPlayer(ev.Player.ReferenceHub);
 
-        if (duration <= 0f)
-        {
-            ev.IsAllowed = false;
+        if (duration < 0.1f)
             return;
-        }
 
         Searches[ev.Player] = (ev.Pickup, Time.time + duration);
     }
@@ -58,9 +55,9 @@ internal static class PickupValidator
 
         string details = $"Pickup time: {pickedUpTime}\nPickup latency: {latency}\nPickup and latency: {(pickedUpTime - latency):F2}";
 
-        if (pickedUpTime - latency > 0.01f)
+        if (pickedUpTime - latency > 0.1f)
         {
-            Config.Instance.FastPickupDetectConfig.Handle(ev.Player, "FastPickup", details, ActionType.None);
+            Config.Instance.FastPickupDetectConfig.Handle(ev.Player, "FastPickup", details);
             ev.IsAllowed = false;
         }
 

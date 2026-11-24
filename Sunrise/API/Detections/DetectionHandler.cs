@@ -1,6 +1,7 @@
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Features.Wrappers;
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,7 +10,7 @@ namespace Sunrise.API.Detections;
 
 internal class DetectionHandler : PluginModule
 {
-    static readonly Dictionary<Player, float> ReportCoolDown = [];
+    static readonly Dictionary<Player, List<float>> ReportCount = [];
     static readonly HttpClient Client = new() { Timeout = TimeSpan.FromSeconds(10) };
 
     protected override void OnEnabled()
@@ -26,18 +27,30 @@ internal class DetectionHandler : PluginModule
         base.OnDisabled();
     }
 
-    protected override void OnReset() => ReportCoolDown.Clear();
+    protected override void OnReset() => ReportCount.Clear();
 
-    static void OnLeft(PlayerLeftEventArgs ev) => ReportCoolDown.Remove(ev.Player);
+    static void OnLeft(PlayerLeftEventArgs ev) => ReportCount.Remove(ev.Player);
 
-    internal static bool CanReport(Player player) => !ReportCoolDown.TryGetValue(player, out float nextReport) || Time.time >= nextReport;
+    internal static bool CanReport(Player player) => !ReportCount.TryGetValue(player, out List<float> reports) || reports.Count == 0 || Time.time >= reports[reports.Count - 1] + 10;
 
     internal static void Handle(Player player, string detection, string details, ActionType action, DetectionConfig config)
     {
-        if (!CanReport(player))
-            return;
+        if (!ReportCount.TryGetValue(player, out List<float> reports))
+        {
+            reports = [];
+            ReportCount[player] = reports;
+        }
 
-        ReportCoolDown[player] = Time.time + 10f;
+        if (action != ActionType.Ban && Config.Instance.MaxWarnCount > 0)
+        {
+            reports.Add(Time.time);
+
+            if (reports.Count(time => Time.time - time < Config.Instance.MaxWarnCountWindow) >= Config.Instance.MaxWarnCount)
+            {
+                action = ActionType.Ban;
+                details += $"\nBan triggered by the warning threshold: at least {Config.Instance.MaxWarnCount} warnings in the last {Config.Instance.MaxWarnCountWindow} seconds.";
+            }
+        }
 
         string reason = Report(player, detection, details, config);
 
@@ -76,11 +89,14 @@ internal class DetectionHandler : PluginModule
 
         Log.Warn(report);
 
-        if (!string.IsNullOrWhiteSpace(config.DetectWebhook))
-            _ = SendWebhook(config.DetectWebhook, report);
+        if (CanReport(player))
+        {
+            if (!string.IsNullOrWhiteSpace(config.DetectWebhook))
+                _ = SendWebhook(config.DetectWebhook, report);
 
-        if (config.DetectReport)
-            SendReport(player, $"{reason}\n{details}");
+            if (config.DetectReport)
+                SendReport(player, $"{reason}\n{details}");
+        }
 
         return reason;
     }
