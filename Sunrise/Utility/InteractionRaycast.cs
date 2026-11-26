@@ -15,7 +15,9 @@ internal static class InteractionRaycast
     {
         hit = default;
 
-        float radius = Mathf.Min((float)GetLatency(player), 0.12f);
+        float pingRadius = Mathf.Clamp((float)GetLatency(player), 0f, 0.12f);
+        float tpsRadius = 0.12f * Mathf.Clamp01(1f - (float)Server.Tps / 60f);
+        float radius = (pingRadius + tpsRadius) * 1.5f;
 
         if (radius <= 0f || !Physics.SphereCast(ray, radius, out RaycastHit nearby, distance, mask))
             return false;
