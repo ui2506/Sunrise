@@ -30,8 +30,14 @@ public sealed class Config
     [Description("Anti-wallhack for spectators. Spectators only see the players that are currently visible to a living player. (Overwatch still see all players) (There is a delay of approximately 0.3 seconds before players appear.)")]
     public bool SpectatorAntiWallhack { get; set; } = true;
 
-    [Description("Checks hidden pickups every 0.1 seconds and visible pickups every second. Pickups within 3 units of the observer or a directly visible pickup are shown within the normal visibility range. Radios, active SCP-244 instances and thrown projectiles are excluded.")]
+    [Description("Checks hidden pickups about every 0.1 seconds and rechecks visible pickups after 1 second. In crowded areas, extra raycasts continue on the next update. " +
+        "Pickups within 3 units of the observer or a directly visible pickup are shown within the normal visibility range. " +
+        "Radios, active SCP-244 instances and thrown projectiles are excluded."
+    )]
     public bool PickupAntiWallhack { get; set; } = true;
+
+    [Description("If true, hide pickups only until the player first sees them. If false, check visible pickups again and hide them when they leave view.")]
+    public bool PickupAntiWallhackKeepSeenPickupsVisible { get; set; } = false;
 
     [Description("Checks line of sight when a player starts picking up an item and detects pickups that finish too quickly.")]
     public bool PickupValidation { get; set; } = true;
@@ -73,7 +79,8 @@ public sealed class Config
         DetectWebhook = ""
     };
 
-    [Description("Ban a player when their warnings across all detections reach this threshold within the warning window. Detections with an initial action of None, Kick, or Kill count as warnings. Set to 0 to disable warning-based bans.")]
+    [Description("Ban a player when their warnings across all detections reach this threshold within the warning window. " +
+        "Detections with an initial action of None, Kick, or Kill count as warnings. Set to 0 to disable warning-based bans.")]
     public int MaxWarnCount { get; set; } = 3;
 
     [Description("How far back to count a player's warnings, in seconds.")]

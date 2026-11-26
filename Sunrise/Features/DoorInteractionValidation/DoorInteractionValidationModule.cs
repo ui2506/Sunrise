@@ -75,21 +75,30 @@ internal class AntiDoorManipulatorModule : PluginModule
 
         Ray ray = new(player.Camera.position, BacktrackHistory.Get(player).LatestForward);
 
-        bool isHitted = Physics.Raycast(ray, out RaycastHit hit, maxDistance, InteractionCoordinator.RaycastMask & ~(int)(Mask.PlayerObjects | Mask.PlayerHitbox));
+        int mask = InteractionCoordinator.RaycastMask & ~(int)(Mask.PlayerObjects | Mask.PlayerHitbox);
 
-        InteractableCollider? collider = null;
+        bool isHitted = Physics.Raycast(ray, out RaycastHit hit, maxDistance, mask);
 
-        if (isHitted && !hit.collider.TryGetComponent(out collider) && hit.collider.transform.parent is Transform parent)
-            parent.TryGetComponent(out collider);
+        InteractableCollider? collider = isHitted ? GetButton(hit) : null;
 
         bool isAllowed = collider != null && collider.Target == target && (!colliderId.HasValue || collider.ColliderId == colliderId);
+
+        if (!isAllowed && InteractionRaycast.TryGetNearbyHit(player, ray, maxDistance, mask, out RaycastHit nearby))
+        {
+            hit = nearby;
+            isHitted = true;
+            collider = GetButton(hit);
+            isAllowed = collider != null && collider.Target == target && (!colliderId.HasValue || collider.ColliderId == colliderId);
+
+            Debug.DrawPoint(hit.point, (isAllowed ? Colors.Green : Colors.Red) * 50, 5f);
+        }
 
         if (Config.Instance.DebugPrimitives)
         {
             Vector3 end = isHitted ? hit.point : ray.GetPoint(maxDistance);
             Color color = (isAllowed ? Colors.Green : Colors.Red) * 50;
 
-            Debug.DrawLine(ray.origin, end, color, 2f);
+            Debug.DrawLine(ray.origin, end, color, 5f);
         }
 
         if (isAllowed)
@@ -102,5 +111,13 @@ internal class AntiDoorManipulatorModule : PluginModule
         }
 
         return false;
+    }
+
+    static InteractableCollider? GetButton(RaycastHit hit)
+    {
+        if (!hit.collider.TryGetComponent(out InteractableCollider button) && hit.collider.transform.parent is Transform parent)
+            parent.TryGetComponent(out button);
+
+        return button;
     }
 }
