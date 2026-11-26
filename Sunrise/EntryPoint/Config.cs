@@ -33,6 +33,9 @@ public sealed class Config
     [Description("Checks hidden pickups every 0.1 seconds and visible pickups every second. Pickups within 3 units of the observer or a directly visible pickup are shown within the normal visibility range. Radios, active SCP-244 instances and thrown projectiles are excluded.")]
     public bool PickupAntiWallhack { get; set; } = true;
 
+    [Description("If true, hide pickups only until the player first sees them. If false, check visible pickups again and hide them when they leave view.")]
+    public bool PickupAntiWallhackKeepSeenPickupsVisible { get; set; } = false;
+
     [Description("Checks line of sight when a player starts picking up an item and detects pickups that finish too quickly.")]
     public bool PickupValidation { get; set; } = true;
     public DetectionConfig FastPickupDetectConfig { get; set; } = new DetectionConfig

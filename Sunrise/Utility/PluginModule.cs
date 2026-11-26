@@ -67,7 +67,7 @@ public abstract class PluginModule
         foreach (PluginModule module in Modules)
         {
             if (!module.IsEnabled)
-                return;
+                continue;
 
             builder.AppendLine(module.GetType().Name);
 

@@ -25,6 +25,8 @@ internal class PickupAntiWallHackModule : PluginModule
     static int lastSlot = -1;
     static int group;
 
+    static bool keepSeenPickupsVisible;
+
     protected override void OnEnabled()
     {
         if (!Config.Instance.PickupAntiWallhack)
@@ -40,6 +42,8 @@ internal class PickupAntiWallHackModule : PluginModule
         Handlers.PlayerEvents.Left += OnLeft;
         Handlers.PlayerEvents.ChangedRole += OnChangedRole;
         Handlers.PlayerEvents.ChangedSpectator += OnChangedSpectator;
+
+        keepSeenPickupsVisible = Config.Instance.PickupAntiWallhackKeepSeenPickupsVisible;
 
         base.OnEnabled();
     }
@@ -77,7 +81,11 @@ internal class PickupAntiWallHackModule : PluginModule
             list.Remove(pickup);
     }
 
-    static void OnChangedRole(PlayerChangedRoleEventArgs ev) => RemovePlayer(ev.Player);
+    static void OnChangedRole(PlayerChangedRoleEventArgs ev)
+    {
+        if (!keepSeenPickupsVisible)
+            RemovePlayer(ev.Player);
+    }
 
     static void OnLeft(PlayerLeftEventArgs ev) => RemovePlayer(ev.Player);
 
@@ -130,7 +138,7 @@ internal class PickupAntiWallHackModule : PluginModule
         if (!DirectlyVisible.TryGetValue(player, out var direct))
             DirectlyVisible[player] = direct = [];
 
-        bool recheckVisible = !NextVisibleCheck.TryGetValue(player, out float next) || Time.time >= next;
+        bool recheckVisible = !keepSeenPickupsVisible && (!NextVisibleCheck.TryGetValue(player, out float next) || Time.time >= next);
 
         if (recheckVisible)
             NextVisibleCheck[player] = Time.time + 1f;
@@ -143,9 +151,15 @@ internal class PickupAntiWallHackModule : PluginModule
 
         Candidates.Clear();
 
+        if (keepSeenPickupsVisible)
+            direct.Clear();
+
         foreach (Pickup pickup in Pickup.List)
         {
             ItemPickupBase item = pickup.Base;
+
+            if (keepSeenPickupsVisible && visible.Contains(item))
+                continue;
 
             float distance = (camera - item.Position).sqrMagnitude;
 
@@ -157,7 +171,7 @@ internal class PickupAntiWallHackModule : PluginModule
 
             bool seen = distance <= NearDistanceSquared;
 
-            if (!seen && !recheckVisible && visible.Contains(item))
+            if (!keepSeenPickupsVisible && !seen && !recheckVisible && visible.Contains(item))
             {
                 if (!direct.Contains(item))
                     Candidates.Add(item);
@@ -184,7 +198,9 @@ internal class PickupAntiWallHackModule : PluginModule
             }
         }
 
-        visible.Clear();
+        if (!keepSeenPickupsVisible)
+            visible.Clear();
+
         visible.AddRange(direct);
 
         foreach (ItemPickupBase item in Candidates)
@@ -214,6 +230,7 @@ internal class PickupAntiWallHackModule : PluginModule
         bool showAll = player.Role == RoleTypeId.Overwatch || (player.Role == RoleTypeId.Spectator && !Config.Instance.SpectatorAntiWallhack);
 
         NetworkConnectionToClient connection = player.ConnectionToClient;
+        VisiblePickups.TryGetValue(player, out var ownVisible);
 
         foreach (Pickup pickup in Pickup.List)
         {
@@ -222,7 +239,8 @@ internal class PickupAntiWallHackModule : PluginModule
 
             NetworkIdentity identity = pickup.NetworkIdentity;
 
-            bool show = (showAll || IsExcluded(pickup.Base) || visible?.Contains(pickup.Base) == true) && CanObserve(identity, connection);
+            bool show = (showAll || IsExcluded(pickup.Base) || visible?.Contains(pickup.Base) == true
+                || (keepSeenPickupsVisible && target != player && ownVisible?.Contains(pickup.Base) == true)) && CanObserve(identity, connection);
 
             if (show == identity.observers.ContainsKey(connection.connectionId))
                 continue;
@@ -248,15 +266,21 @@ internal class PickupAntiWallHackModule : PluginModule
             return false;
 
         Player player = Player.Get(hub);
-        if (player.Role == RoleTypeId.Overwatch)
+
+        VisiblePickups.TryGetValue(player, out var visible);
+
+        if (keepSeenPickupsVisible && visible?.Contains(pickup) == true)
             return true;
+
+        if (player.Role == RoleTypeId.Overwatch)
+            return Remember();
 
         if (player.Role == RoleTypeId.Spectator)
         {
             if (!Config.Instance.SpectatorAntiWallhack)
-                return true;
+                return Remember();
 
-            return player.CurrentlySpectating is Player target && VisiblePickups.TryGetValue(target, out var items) && items.Contains(pickup);
+            return player.CurrentlySpectating is Player target && VisiblePickups.TryGetValue(target, out var items) && items.Contains(pickup) && Remember();
         }
 
         if (player.RoleBase is not IFpcRole && player.RoleBase is not Scp079Role)
@@ -266,8 +290,23 @@ internal class PickupAntiWallHackModule : PluginModule
 
         float distance = (camera - pickup.Position).sqrMagnitude;
 
-        return distance <= NearDistanceSquared || (VisibilityData.InRange(camera, distance)
-            && VisiblePickups.TryGetValue(player, out var visible) && visible.Contains(pickup));
+        if (distance <= NearDistanceSquared)
+            return Remember();
+
+        return VisibilityData.InRange(camera, distance) && visible?.Contains(pickup) == true;
+
+        bool Remember()
+        {
+            if (keepSeenPickupsVisible)
+            {
+                if (visible == null)
+                    VisiblePickups[player] = visible = [];
+
+                visible.Add(pickup);
+            }
+
+            return true;
+        }
     }
 
     static bool IsExcluded(ItemPickupBase pickup)

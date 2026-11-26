@@ -2,10 +2,7 @@ using InventorySystem.Items.Pickups;
 using LabApi.Events.Arguments.Interfaces;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Features.Wrappers;
-using LiteNetLib;
-using Mirror.LiteNetLib4Mirror;
 using Sunrise.API.Backtracking;
-using Sunrise.API.Detections;
 
 namespace Sunrise.Features.PickupValidation;
 
@@ -49,9 +46,7 @@ internal static class PickupValidator
 
         float pickedUpTime = search.FinishTime - Time.time;
 
-        double latency = LiteNetLib4MirrorServer.Peers.TryGetValue(ev.Player.ConnectionToClient.connectionId, out NetPeer peer)
-            ? peer.Ping * 0.001 * ev.Player.ReferenceHub.searchCoordinator.serverDelayThreshold
-            : 0d;
+        double latency = InteractionRaycast.GetLatency(ev.Player);
 
         string details = $"Pickup time: {pickedUpTime}\nPickup latency: {latency}\nPickup and latency: {(pickedUpTime - latency):F2}";
 
@@ -74,11 +69,12 @@ internal static class PickupValidator
     {
         Ray ray = new(player.Camera.position, BacktrackHistory.Get(player).LatestForward);
 
-        if (!Physics.Raycast(ray, out RaycastHit hit, 3, (int)(Mask.HitregObstacles | Mask.Pickups)))
-            return false;
-
-        if (hit.collider.GetComponentInParent<ItemPickupBase>() != pickup.Base)
-            return false;
+        const int mask = (int)(Mask.HitregObstacles | Mask.Pickups);
+        if (!Physics.Raycast(ray, out RaycastHit hit, 3f, mask) || hit.collider.GetComponentInParent<ItemPickupBase>() != pickup.Base)
+        {
+            if (!InteractionRaycast.TryGetNearbyHit(player, ray, 3f, mask, out hit) || hit.collider.GetComponentInParent<ItemPickupBase>() != pickup.Base)
+                return false;
+        }
 
         Debug.DrawLine(ray.origin, hit.point, Colors.Blue * 50, 15);
         return true;
