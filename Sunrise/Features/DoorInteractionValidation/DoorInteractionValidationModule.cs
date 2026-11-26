@@ -46,9 +46,9 @@ internal class AntiDoorManipulatorModule : PluginModule
             return;
 
         if (Config.Instance.Debug)
-            ev.IsAllowed = false;
-        else
             ev.CanOpen = false;
+        else
+            ev.IsAllowed = false;
     }
 
     static void OnInteractingLocker(PlayerInteractingLockerEventArgs ev)
