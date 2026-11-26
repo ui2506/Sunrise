@@ -89,6 +89,8 @@ internal class AntiDoorManipulatorModule : PluginModule
             isHitted = true;
             collider = GetButton(hit);
             isAllowed = collider != null && collider.Target == target && (!colliderId.HasValue || collider.ColliderId == colliderId);
+
+            Debug.DrawPoint(hit.point, (isAllowed ? Colors.Green : Colors.Red) * 50, 5f);
         }
 
         if (Config.Instance.DebugPrimitives)
@@ -96,7 +98,7 @@ internal class AntiDoorManipulatorModule : PluginModule
             Vector3 end = isHitted ? hit.point : ray.GetPoint(maxDistance);
             Color color = (isAllowed ? Colors.Green : Colors.Red) * 50;
 
-            Debug.DrawLine(ray.origin, end, color, 2f);
+            Debug.DrawLine(ray.origin, end, color, 5f);
         }
 
         if (isAllowed)

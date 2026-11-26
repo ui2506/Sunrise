@@ -1,13 +1,12 @@
 using InventorySystem.Items.Firearms;
 using InventorySystem.Items.Pickups;
-using LabApi.Features.Wrappers;
-using Sunrise.API.Visibility;
 
 namespace Sunrise.Features.AntiWallHack.PickupAntiWallHack;
 
 internal sealed class PickupPoints(ItemPickupBase pickup)
 {
-    readonly Vector3[] points = new Vector3[6];
+    internal const int PointCount = 6;
+    readonly Vector3[] points = new Vector3[PointCount];
     Vector3? position;
     Quaternion rotation;
     Vector3 scale;
@@ -16,20 +15,19 @@ internal sealed class PickupPoints(ItemPickupBase pickup)
     Collider[]? _colliders;
     uint attachments;
     float nextDraw;
+    int updatedFrame = -1;
 
-    public bool IsVisible(Vector3 camera, Room? observerRoom)
+    public bool IsVisible(Vector3 camera, int mask, ref int raysLeft)
     {
-        Room? room = VisibilityData.GetRoom(pickup.Position);
-
-        if (observerRoom != null && !VisibilityData.Get(observerRoom).IsVisible(room))
-            return false;
-
-        UpdatePoints();
-
-        int mask = VisibilityData.GetVisionMask(observerRoom, room);
+        if (updatedFrame != Time.frameCount)
+        {
+            UpdatePoints();
+            updatedFrame = Time.frameCount;
+        }
 
         foreach (Vector3 point in points)
         {
+            raysLeft--;
             if (!Physics.Linecast(camera, point, out RaycastHit hit, mask, QueryTriggerInteraction.Ignore) || hit.transform.IsChildOf(pickup.transform))
                 return true;
         }
