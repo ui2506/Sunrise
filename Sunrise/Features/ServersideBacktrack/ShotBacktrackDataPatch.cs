@@ -12,25 +12,16 @@ namespace Sunrise.Features.ServersideBacktrack;
 [HarmonyPatch(typeof(ShotBacktrackData), nameof(ShotBacktrackData.ProcessShot)), UsedImplicitly(ImplicitUseTargetFlags.WithMembers)] 
 internal static class BacktrackOverridePatch
 {
-    static readonly AutoBenchmark Benchmark = new("Server-Side Backtrack");
+    static readonly AutoBenchmark Benchmark = new("BacktrackOverridePatch.ProcessShot");
 
     static bool Prefix(BaseFirearm firearm, Action<ReferenceHub> processingMethod, ShotBacktrackData __instance)
     {
         if (!Config.Instance.ServersideBacktrack)
             return true;
 
-        Benchmark.Start();
-
-        try
-        {
-            ProcessShot(firearm, processingMethod, __instance);
-            return false;
-        }
-        finally
-        {
-            Benchmark.Increment();
-            Benchmark.Stop();
-        }
+        using var measurement = Benchmark.Start();
+        ProcessShot(firearm, processingMethod, __instance);
+        return false;
     }
 
     static void ProcessShot(BaseFirearm firearm, Action<ReferenceHub> processingMethod, ShotBacktrackData backtrackData)

@@ -5,6 +5,9 @@ namespace Sunrise.Features.ServersideTeslaDamage;
 
 internal class ServersideTeslaHitreg(TeslaGate tesla)
 {
+    static readonly AutoBenchmark BurstBenchmark = new("ServersideTeslaHitreg.UpdateBurst");
+    static readonly AutoBenchmark HitsBenchmark = new("ServersideTeslaHitreg.ProcessHits");
+
     const float ShockDuration = 0.5f;
     internal const string CoroutineTag = "Sunrise.Tesla";
 
@@ -40,6 +43,8 @@ internal class ServersideTeslaHitreg(TeslaGate tesla)
 
     void UpdateBurst()
     {
+        using var measurement = BurstBenchmark.Start();
+
         int count = Physics.OverlapBoxNonAlloc(_bounds.center, _bounds.extents, _hitBuffer, Quaternion.identity, (int)Mask.PlayerHitbox);
 
         for (var i = 0; i < count; i++)
@@ -53,6 +58,8 @@ internal class ServersideTeslaHitreg(TeslaGate tesla)
 
     void ProcessHits()
     {
+        using var measurement = HitsBenchmark.Start();
+
         foreach (ReferenceHub hub in _hitPlayers)
         {
             Player player = Player.Get(hub);

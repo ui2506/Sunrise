@@ -8,6 +8,7 @@ namespace Sunrise.API.Visibility;
 
 public class VisibilityData
 {
+    static readonly AutoBenchmark Benchmark = new("VisibilityData.InitializeVisibilityData");
     static readonly Dictionary<Vector3Int, VisibilityData> Cache = [];
     static readonly Dictionary<Vector3, Room?> Rooms = [];
     static int roomFrame = -1;
@@ -47,6 +48,8 @@ public class VisibilityData
 
     void InitializeVisibilityData()
     {
+        using var measurement = Benchmark.Start();
+
         VisibilityGenerator.AddRoomAndNeighbors(VisibleCoords, TargetRoom);
         Debug.Log($"Generated visibility data for room {TargetRoom.Name}. Total visible coords: {VisibleCoords.Count}");
     }

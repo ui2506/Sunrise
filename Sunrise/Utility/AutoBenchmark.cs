@@ -1,8 +1,9 @@
+using System;
 using System.Diagnostics;
 
 namespace Sunrise.Utility;
 
-internal class AutoBenchmark(string targetName, float reportInterval = 10)
+internal class AutoBenchmark(string targetName, float reportInterval = 10) : IDisposable
 {
     readonly Stopwatch _consumedTime = new();
     readonly Stopwatch _totalTime = new();
@@ -10,18 +11,21 @@ internal class AutoBenchmark(string targetName, float reportInterval = 10)
 
     static bool Enabled => Config.Instance.Benchmark;
 
-    public void Start()
+    public IDisposable? Start()
     {
-        if (!Enabled)
-            return;
+        if (!Enabled || _consumedTime.IsRunning)
+            return null;
 
-        _consumedTime.Start();
+        _count++;
         _totalTime.Start();
+        _consumedTime.Start();
+
+        return this;
     }
 
     public void Stop()
     {
-        if (!Enabled)
+        if (!_consumedTime.IsRunning)
             return;
 
         _consumedTime.Stop();
@@ -32,19 +36,16 @@ internal class AutoBenchmark(string targetName, float reportInterval = 10)
 
     void Report()
     {
-        double precentage = _consumedTime.Elapsed.TotalSeconds / _totalTime.Elapsed.TotalSeconds;
+        double seconds = _totalTime.Elapsed.TotalSeconds;
 
-        var message = $"Time consumed by {targetName} in last {_totalTime.Elapsed.TotalSeconds:F}: {_consumedTime.Elapsed.TotalSeconds:F} ({precentage:P2}).";
+        TimeSpan consumed = _consumedTime.Elapsed;
 
-        if (_count > 0)
-            message += $" Counter: {_count}.";
-
-        Debug.Log(message);
+        Log.Info($"Time consumed by {targetName} in last {seconds:F2}s: {consumed.TotalMilliseconds:F2} ms ({consumed.TotalSeconds / seconds:P2}). Calls: {_count}.");
 
         _consumedTime.Reset();
         _totalTime.Restart();
         _count = 0;
     }
 
-    public void Increment(int amount = 1) => _count += amount;
+    void IDisposable.Dispose() => Stop();
 }

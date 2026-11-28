@@ -5,6 +5,8 @@ namespace Sunrise.Features.AntiWallHack.PickupAntiWallHack;
 
 internal sealed class PickupPoints(ItemPickupBase pickup)
 {
+    static readonly AutoBenchmark Benchmark = new("PickupPoints.IsVisible");
+
     internal const int PointCount = 6;
     readonly Vector3[] points = new Vector3[PointCount];
     Vector3? position;
@@ -19,6 +21,8 @@ internal sealed class PickupPoints(ItemPickupBase pickup)
 
     public bool IsVisible(Vector3 camera, int mask, ref int raysLeft)
     {
+        using var measurement = Benchmark.Start();
+
         if (updatedFrame != Time.frameCount)
         {
             UpdatePoints();
