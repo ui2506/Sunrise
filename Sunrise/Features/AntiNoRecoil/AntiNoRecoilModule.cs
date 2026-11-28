@@ -8,6 +8,8 @@ namespace Sunrise.Features.AntiNoRecoil;
 
 internal class AntiNoRecoilModule : PluginModule
 {
+    static readonly AutoBenchmark Benchmark = new("AntiNoRecoilModule.OnShot");
+
     const int RequiredIntervals = 8;
     const int EvidenceWindow = 10;
     const float MaxInterval = 0.25f;
@@ -48,6 +50,8 @@ internal class AntiNoRecoilModule : PluginModule
 
     static void OnShot(PlayerShotWeaponEventArgs ev)
     {
+        using var measurement = Benchmark.Start();
+
         if (!BacktrackHistory.Dictionary.TryGetValue(ev.Player.ReferenceHub, out BacktrackHistory history))
         {
             if (Config.Instance.Debug)

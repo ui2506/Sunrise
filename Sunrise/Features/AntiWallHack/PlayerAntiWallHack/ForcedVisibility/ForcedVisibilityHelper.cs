@@ -1,14 +1,14 @@
-using System.Diagnostics.CodeAnalysis;
 using LabApi.Features.Wrappers;
 using PlayerRoles;
+using PlayerRoles.FirstPersonControl;
 using PlayerRoles.PlayableScps.Scp049;
 using PlayerRoles.PlayableScps.Scp049.Zombies;
+using PlayerRoles.PlayableScps.Scp096;
 using PlayerRoles.PlayableScps.Scp106;
 using PlayerRoles.PlayableScps.Scp173;
 using PlayerRoles.PlayableScps.Scp939;
 using PlayerRoles.PlayableScps.Scp939.Mimicry;
-using PlayerRoles.FirstPersonControl;
-using PlayerRoles.PlayableScps.Scp096;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Sunrise.Features.AntiWallHack.PlayerAntiWallHack.ForcedVisibility;
 
@@ -46,16 +46,16 @@ internal static class ForcedVisibilityHelper
         return result;
     }
 
-    static float Get096Visibility(Scp096Role scp096) => scp096.StateController.AbilityState switch
+    static float Get096Visibility(Scp096Role scp096)
     {
-        // crying - 30
-        // trying not to cry - 4
-        // enraged max
+        if (scp096.StateController.RageState == Scp096RageState.Enraged)
+            return 65;
 
-        Scp096AbilityState.None => 30,
-        Scp096AbilityState.TryingNotToCry => 4,
-        _ => 100,
-    };
+        if (scp096.StateController.AbilityState == Scp096AbilityState.TryingNotToCry)
+            return 5;
+
+        return 55;
+    }
 
     static float Get106Visibility(Scp106Role scp106)
     {

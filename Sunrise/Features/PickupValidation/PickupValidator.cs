@@ -8,11 +8,16 @@ namespace Sunrise.Features.PickupValidation;
 
 internal static class PickupValidator
 {
+    static readonly AutoBenchmark SearchBenchmark = new("PickupValidator.OnSearchingPickup");
+    static readonly AutoBenchmark PickupTimeBenchmark = new("PickupValidator.OnPickingUp");
+
     internal static readonly Dictionary<Player, float> TemporaryPlayerBypass = [];
     static readonly Dictionary<Player, (Pickup Pickup, float FinishTime)> Searches = [];
 
     internal static void OnSearchingPickup(PlayerSearchingPickupEventArgs ev)
     {
+        using var measurement = SearchBenchmark.Start();
+
         if (!ev.IsAllowed)
             return;
 
@@ -37,6 +42,8 @@ internal static class PickupValidator
 
     internal static void OnPickingUp<T>(T ev) where T : IPlayerEvent, IPickupEvent, ICancellableEvent
     {
+        using var measurement = PickupTimeBenchmark.Start();
+
         #pragma warning disable CS8604
 
         if (!Searches.TryGetValue(ev.Player, out var search) || search.Pickup != ev.Pickup)

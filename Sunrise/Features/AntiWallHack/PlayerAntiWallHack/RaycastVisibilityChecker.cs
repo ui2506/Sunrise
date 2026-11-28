@@ -33,7 +33,7 @@ internal static class RaycastVisibilityChecker
 
     static readonly Vector3[] VisibilityPointsBuffer = new Vector3[VisibilityPointOffsets.Length + 1];
 
-    static readonly AutoBenchmark Benchmark = new("Raycast Anti Wallhack");
+    static readonly AutoBenchmark Benchmark = new("RaycastVisibilityChecker.IsVisible (cache miss)");
 
     public static bool IsVisible(Player playerA, Player playerB, Room? observerRoom, Room? targetRoom)
     {
@@ -42,7 +42,7 @@ internal static class RaycastVisibilityChecker
         if (RaycastVisibilityCache.TryGet(key, out bool value))
             return value;
 
-        Benchmark.Start();
+        using var measurement = Benchmark.Start();
 
         int mask = VisibilityData.GetVisionMask(observerRoom, targetRoom);
 
@@ -50,8 +50,6 @@ internal static class RaycastVisibilityChecker
         
         RaycastVisibilityCache.Save(key, result);
 
-        Benchmark.Increment();
-        Benchmark.Stop();
         return result;
     }
 

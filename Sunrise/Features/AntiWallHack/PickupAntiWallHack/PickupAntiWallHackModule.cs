@@ -14,6 +14,11 @@ namespace Sunrise.Features.AntiWallHack.PickupAntiWallHack;
 
 internal class PickupAntiWallHackModule : PluginModule
 {
+    static readonly AutoBenchmark DestroyBenchmark = new("PickupAntiWallHackModule.OnPickupDestroyed");
+    static readonly AutoBenchmark SpectatorBenchmark = new("PickupAntiWallHackModule.OnChangedSpectator");
+    static readonly AutoBenchmark UpdateBenchmark = new("PickupAntiWallHackModule.OnUpdate (total)");
+    static readonly AutoBenchmark ObserverBenchmark = new("PickupAntiWallHackModule.AllowObserver");
+
     const float NearDistanceSquared = 3f * 3f;
     const float HiddenCheckInterval = 0.1f;
     const float VisibleCheckInterval = 1f;
@@ -82,7 +87,17 @@ internal class PickupAntiWallHackModule : PluginModule
 
     static void OnPickupDestroyed(ItemPickupBase pickup)
     {
+        using var measurement = DestroyBenchmark.Start();
+
         Points.Remove(pickup);
+
+        NetworkIdentity identity = pickup.netIdentity;
+
+        if (identity.destroyCalled && identity.observers.Count > 0)
+        {
+            NetworkServer.SendToObservers(identity, new ObjectDestroyMessage { netId = identity.netId });
+            identity.ClearObservers();
+        }
 
         foreach (PlayerVisibility state in Players.Values)
             state.Visible.Remove(pickup);
@@ -98,12 +113,16 @@ internal class PickupAntiWallHackModule : PluginModule
 
     static void OnChangedSpectator(PlayerChangedSpectatorEventArgs ev)
     {
+        using var measurement = SpectatorBenchmark.Start();
+
         if (Config.Instance.SpectatorAntiWallhack && ev.NewTarget != ev.OldTarget && ev.Player.IsReady)
             SyncObserver(ev.Player, ev.NewTarget);
     }
 
     static void OnUpdate()
     {
+        using var measurement = UpdateBenchmark.Start();
+
         int slot = Mathf.FloorToInt(Time.time * (UpdateGroups / HiddenCheckInterval));
 
         if (slot == lastSlot)
@@ -332,6 +351,8 @@ internal class PickupAntiWallHackModule : PluginModule
 
     internal static bool AllowObserver(NetworkIdentity identity, NetworkConnectionToClient connection)
     {
+        using var measurement = ObserverBenchmark.Start();
+
         if (connection is LocalConnectionToClient || !identity.TryGetComponent(out ItemPickupBase pickup) || IsExcluded(pickup))
             return true;
 

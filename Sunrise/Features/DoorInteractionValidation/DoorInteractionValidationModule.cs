@@ -10,6 +10,10 @@ namespace Sunrise.Features.DoorInteractionValidation;
 
 internal class AntiDoorManipulatorModule : PluginModule
 {
+    static readonly AutoBenchmark DoorBenchmark = new("AntiDoorManipulatorModule.OnInteractingDoor");
+    static readonly AutoBenchmark LockerBenchmark = new("AntiDoorManipulatorModule.OnInteractingLocker");
+    static readonly AutoBenchmark ElevatorBenchmark = new("AntiDoorManipulatorModule.OnInteractingElevator");
+
     protected override void OnEnabled()
     {
         if (!Config.Instance.DoorInteractionValidation)
@@ -42,6 +46,8 @@ internal class AntiDoorManipulatorModule : PluginModule
         if (ev.Door.DoorName == DoorName.Lcz330Chamber || ev.Player.RoleBase is not IFpcRole || ev.Player.IsNoclipEnabled)
             return;
 
+        using var measurement = DoorBenchmark.Start();
+
         if (CanInteract(ev.Player, ev.Door.Base))
             return;
 
@@ -56,6 +62,8 @@ internal class AntiDoorManipulatorModule : PluginModule
         if (!ev.IsAllowed || ev.Player.RoleBase is not IFpcRole || ev.Player.IsNoclipEnabled)
             return;
 
+        using var measurement = LockerBenchmark.Start();
+
         if (!CanInteract(ev.Player, ev.Locker.Base, ev.Chamber.Id))
             ev.IsAllowed = false;
     }
@@ -64,6 +72,8 @@ internal class AntiDoorManipulatorModule : PluginModule
     {
         if (!ev.IsAllowed || ev.Player.RoleBase is not IFpcRole || ev.Player.IsNoclipEnabled)
             return;
+
+        using var measurement = ElevatorBenchmark.Start();
 
         if (!CanInteract(ev.Player, ev.Panel.Target, ev.Panel.ColliderId))
             ev.IsAllowed = false;

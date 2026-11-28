@@ -10,6 +10,9 @@ namespace Sunrise.API.Detections;
 
 internal class DetectionHandler : PluginModule
 {
+    static readonly AutoBenchmark HandleBenchmark = new("DetectionHandler.Handle (includes Report)");
+    static readonly AutoBenchmark ReportBenchmark = new("DetectionHandler.Report");
+
     static readonly Dictionary<Player, List<float>> ReportCount = [];
     static readonly HttpClient Client = new() { Timeout = TimeSpan.FromSeconds(10) };
 
@@ -35,6 +38,8 @@ internal class DetectionHandler : PluginModule
 
     internal static void Handle(Player player, string detection, string details, ActionType action, DetectionConfig config)
     {
+        using var measurement = HandleBenchmark.Start();
+
         if (!ReportCount.TryGetValue(player, out List<float> reports))
         {
             reports = [];
@@ -84,6 +89,8 @@ internal class DetectionHandler : PluginModule
 
     internal static string Report(Player player, string detection, string details, DetectionConfig config)
     {
+        using var measurement = ReportBenchmark.Start();
+
         string reason = $"[Sunrise] {detection} detected!";
         string report = $"{reason}\nPlayer [{player.PlayerId}] {player.Nickname} ({player.UserId})\n{details}";
 

@@ -8,9 +8,13 @@ namespace Sunrise.API.Backtracking;
 [HarmonyPatch(typeof(FpcMouseLook), nameof(FpcMouseLook.ApplySyncValues)), UsedImplicitly]
 internal static class FpcMouseLookPatch
 {
+    static readonly AutoBenchmark Benchmark = new("FpcMouseLook.ApplySyncValues (record history)");
+
     [UsedImplicitly]
     static void Prefix(ushort horizontal, ushort vertical, FpcMouseLook __instance)
     {
+        using var measurement = Benchmark.Start();
+
         Quaternion localRotation = ConvertToQuaternion(horizontal, vertical);
         Quaternion worldRotation = WaypointBase.GetWorldRotation(__instance._fpmm.Motor.ReceivedPosition.WaypointId, localRotation);
         BacktrackHistory.Get(__instance._hub).RecordEntry(__instance._hub.transform.position, worldRotation);

@@ -9,6 +9,9 @@ namespace Sunrise.Features.AntiBigStep;
 
 internal class AntiBigStepModule : PluginModule
 {
+    static readonly AutoBenchmark PositionOverrideBenchmark = new("AntiBigStepModule.OnPositionOverridden");
+    static readonly AutoBenchmark MovementBenchmark = new("AntiBigStepModule.OnMovement");
+
     static readonly Dictionary<ReferenceHub, MovementData> Players = [];
 
     protected override void OnEnabled()
@@ -43,6 +46,8 @@ internal class AntiBigStepModule : PluginModule
 
     internal static void OnPositionOverridden(ReferenceHub hub)
     {
+        using var measurement = PositionOverrideBenchmark.Start();
+
         if (!Players.TryGetValue(hub, out MovementData data))
             Players[hub] = data = new();
 
@@ -52,6 +57,8 @@ internal class AntiBigStepModule : PluginModule
 
     internal static bool OnMovement(ReferenceHub hub, FpcSyncData sync)
     {
+        using var measurement = MovementBenchmark.Start();
+
         if (!sync._bitPosition)
             return true;
 

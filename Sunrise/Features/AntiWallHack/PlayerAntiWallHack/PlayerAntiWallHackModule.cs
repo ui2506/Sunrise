@@ -9,7 +9,6 @@ using PlayerRoles.PlayableScps.Scp049;
 using PlayerRoles.PlayableScps.Scp096;
 using Sunrise.API.Visibility;
 using Sunrise.Features.AntiWallHack.PlayerAntiWallHack.ForcedVisibility;
-using System;
 
 namespace Sunrise.Features.AntiWallHack.PlayerAntiWallHack;
 
@@ -22,7 +21,8 @@ internal class PlayerAntiWallHackModule : PluginModule
     static readonly Dictionary<Player, float> VisibilityRanges = [];
     static int rangeFrame = -1;
 
-    static readonly AutoBenchmark Benchmark = new("Anti Wallhack (without raycasts)");
+    static readonly AutoBenchmark SpectatorBenchmark = new("PlayerAntiWallHackModule.OnValidatedVisibility (spectator)");
+    static readonly AutoBenchmark PlayerBenchmark = new("PlayerAntiWallHackModule.IsPlayerVisible (before raycast)");
 
     protected override void OnEnabled()
     {
@@ -95,6 +95,8 @@ internal class PlayerAntiWallHackModule : PluginModule
 
         if (Config.Instance.SpectatorAntiWallhack && ev.Player.Role == RoleTypeId.Spectator)
         {
+            using var measurement = SpectatorBenchmark.Start();
+
             if (!ev.IsVisible)
                 return;
 
@@ -114,70 +116,49 @@ internal class PlayerAntiWallHackModule : PluginModule
             return;
         }
 
-        if (!ev.IsVisible)
-        {
-            SaveVisibility(ev.Player, ev.Target, false);
-            return;
-        }
+        if (ev.IsVisible && ev.Player.RoleBase is IFpcRole observerRole && ev.Target.RoleBase is IFpcRole)
+            ev.IsVisible = IsPlayerVisible(ev.Player, ev.Target, observerRole);
 
-        if (ev.Player.RoleBase is not IFpcRole observerRole || ev.Target.RoleBase is not IFpcRole)
-        {
-            SaveVisibility(ev.Player, ev.Target, true);
-            return;
-        }
+        SaveVisibility(ev.Player, ev.Target, ev.IsVisible);
+    }
 
-        try
-        {
-            Benchmark.Start();
+    static bool IsPlayerVisible(Player observer, Player target, IFpcRole observerRole)
+    {
+        Room? observerRoom;
+        Room? targetRoom;
 
+        using (PlayerBenchmark.Start())
+        {
             Vector3 observerPosition = observerRole.FpcModule.Position;
-            Vector3 targetPosition = ev.Target.Position;
+            Vector3 targetPosition = target.Position;
 
             float sqrDistance = (observerPosition - targetPosition).sqrMagnitude;
 
             if (sqrDistance <= 2f * 2f)
-                return;
+                return true;
 
-            if (!VisibilityData.InRange(observerPosition, sqrDistance))
-            {
-                ev.IsVisible = false;
-                return;
-            }
+            if (sqrDistance > 100f * 100f)
+                return false;
 
-            if (BypassedPlayers.TryGetValue(ev.Target, out float until) && until > Time.time)
-                return;
+            if (BypassedPlayers.TryGetValue(target, out float until) && until > Time.time)
+                return true;
 
-            if (IsExceptionalObserver(ev.Player, ev.Target))
-                return;
+            if (IsExceptionalObserver(observer, target))
+                return true;
 
-            float forcedVisibility = GetVisibilityRange(ev.Target);
+            float forcedVisibility = GetVisibilityRange(target);
 
             if (sqrDistance < forcedVisibility * forcedVisibility)
-                return;
+                return true;
 
-            Room? observerRoom = VisibilityData.GetRoom(observerPosition);
-            Room? targetRoom = VisibilityData.GetRoom(targetPosition);
+            observerRoom = VisibilityData.GetRoom(observerPosition);
+            targetRoom = VisibilityData.GetRoom(targetPosition);
 
-            if (observerRoom != null && !ev.Target.IsDestroyed && !VisibilityData.Get(observerRoom).IsVisible(targetRoom))
-            {
-                ev.IsVisible = false;
-                return;
-            }
-
-            Benchmark.Stop();
-
-            if (Config.Instance.RaycastAntiWallhack && !RaycastVisibilityChecker.IsVisible(ev.Player, ev.Target, observerRoom, targetRoom))
-                ev.IsVisible = false;
+            if (observerRoom != null && !target.IsDestroyed && !VisibilityData.Get(observerRoom).IsVisible(targetRoom))
+                return false;
         }
-        catch (Exception e)
-        {
-            Log.Error($"Error in {nameof(PlayerAntiWallHackModule)}.{nameof(OnValidatedVisibility)}: {e}");
-        }
-        finally
-        {
-            Benchmark.Stop();
-            SaveVisibility(ev.Player, ev.Target, ev.IsVisible);
-        }
+
+        return !Config.Instance.RaycastAntiWallhack || RaycastVisibilityChecker.IsVisible(observer, target, observerRoom, targetRoom);
     }
 
     static void SaveVisibility(Player observer, Player target, bool visible)
@@ -237,9 +218,11 @@ internal class PlayerAntiWallHackModule : PluginModule
             && sense.HasTarget && sense.Target == target.ReferenceHub)
             return true;
 
-        // These roles have their own visibility systems.
-        return observer.RoleBase is Scp096Role scp096 && scp096.StateController.RageState == Scp096RageState.Enraged && scp096.SubroutineModule.TryGetSubroutine(out Scp096TargetsTracker targetSub) && targetSub.Targets.Contains(target.ReferenceHub);
-        //observer.RoleBase is Scp939Role
+        if (observer.RoleBase is Scp096Role scp096 && scp096.StateController.RageState == Scp096RageState.Enraged 
+            && scp096.SubroutineModule.TryGetSubroutine(out Scp096TargetsTracker targetSub) && targetSub.Targets.Contains(target.ReferenceHub))
+            return true;
+
+        return false;
     }
 }
 
